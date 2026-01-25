@@ -1,0 +1,3881 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tactical CRM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .tab-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e1e8ed;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: #5a6c7d;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            position: relative;
+        }
+
+        .tab:hover {
+            color: #2a5298;
+        }
+
+        .tab.active {
+            color: #2a5298;
+            border-bottom-color: #2a5298;
+        }
+
+        .tab-badge {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: #e53e3e;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        .content-section {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #1e3c72;
+            font-weight: 600;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 2px solid #e1e8ed;
+        }
+
+        .form-group-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .form-group-checkbox label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2a5298;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #4a5568;
+        }
+
+        input, select, textarea {
+            padding: 10px 12px;
+            border: 1.5px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #2a5298;
+            box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #2a5298;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1e3c72;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(42, 82, 152, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f0f3f7;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover {
+            background: #e1e8ed;
+        }
+
+        .btn-danger {
+            background: #e53e3e;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c53030;
+        }
+
+        .customer-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .customer-card {
+            background: #f8fafc;
+            border: 1.5px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .customer-card:hover {
+            border-color: #2a5298;
+            box-shadow: 0 4px 12px rgba(42, 82, 152, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .customer-card h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #1e3c72;
+        }
+
+        .customer-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+            font-size: 14px;
+            color: #5a6c7d;
+        }
+
+        .customer-info span {
+            display: flex;
+            align-items: center;
+        }
+
+        .customer-info strong {
+            margin-right: 6px;
+            color: #2c3e50;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 15px;
+        }
+
+        .search-box button {
+            white-space: nowrap;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 900px;
+            width: 95%;
+            max-height: 95vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-size: 22px;
+            color: #1e3c72;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #718096;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #2c3e50;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+
+        .viz-card-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #f0f3f7;
+            border-radius: 4px;
+            font-size: 11px;
+            margin: 3px 2px;
+            font-weight: 500;
+        }
+
+        .key-customer-badge {
+            background: #e53e3e;
+            color: white;
+            margin-left: 8px;
+        }
+
+        .key-customer-section {
+            margin-bottom: 30px;
+        }
+
+        .key-customer-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 2px solid #e1e8ed;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            border-color: #2a5298;
+        }
+
+        .filter-btn.active {
+            background: #2a5298;
+            color: white;
+            border-color: #2a5298;
+        }
+
+        /* To-Do 스타일 */
+        .todo-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary-card:nth-child(1) { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .summary-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .summary-card:nth-child(3) { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .summary-card:nth-child(4) { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+
+        .summary-number {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .todo-category {
+            margin-bottom: 25px;
+        }
+
+        .todo-category h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #2c3e50;
+        }
+
+        .todo-item {
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            transition: all 0.3s;
+        }
+
+        .todo-item:hover {
+            border-color: #2a5298;
+            box-shadow: 0 2px 8px rgba(42, 82, 152, 0.1);
+        }
+
+        .todo-item.completed {
+            opacity: 0.6;
+            background: #f8fafc;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+        }
+
+        .todo-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            margin-top: 2px;
+        }
+
+        .todo-content {
+            flex: 1;
+        }
+
+        .todo-text {
+            font-size: 15px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .todo-meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            font-size: 13px;
+            color: #5a6c7d;
+        }
+
+        .todo-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #f0f3f7;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .todo-badge.urgent {
+            background: #fee;
+            color: #e53e3e;
+        }
+
+        .todo-badge.auto {
+            background: #e6f7ff;
+            color: #1890ff;
+        }
+
+        .todo-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .todo-action-btn {
+            background: none;
+            border: none;
+            color: #718096;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px;
+            transition: color 0.3s;
+        }
+
+        .todo-action-btn:hover {
+            color: #2a5298;
+        }
+
+        .todo-action-btn.delete:hover {
+            color: #e53e3e;
+        }
+
+        .empty-todo {
+            text-align: center;
+            padding: 30px;
+            color: #a0aec0;
+            font-style: italic;
+        }
+
+        /* 시각화 스타일 */
+        .viz-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 20px 0;
+        }
+
+        .viz-card {
+            background: white;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .viz-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-color: #2a5298;
+        }
+
+        .viz-card.service-육군 { border-left: 4px solid #2a5298; }
+        .viz-card.service-해군 { border-left: 4px solid #1e88e5; }
+        .viz-card.service-공군 { border-left: 4px solid #43a047; }
+        .viz-card.service-해병대 { border-left: 4px solid #00897b; }
+        .viz-card.service-ADD { border-left: 4px solid #ff6f00; }
+        .viz-card.service-국과연 { border-left: 4px solid #ff6f00; }
+        .viz-card.service-국기연 { border-left: 4px solid #f57c00; }
+        .viz-card.service-기품원 { border-left: 4px solid #ef6c00; }
+        .viz-card.service-IITP { border-left: 4px solid #e65100; }
+        .viz-card.org-연구기관 { border-left: 4px solid #ff6f00; }
+        .viz-card.org-공무원 { border-left: 4px solid #7b1fa2; }
+        .viz-card.service-공무원 { border-left: 4px solid #9c27b0; }
+        .viz-card.service-방사청 { border-left: 4px solid #7b1fa2; }
+
+        .viz-card-rank {
+            font-size: 12px;
+            font-weight: 600;
+            color: #5a6c7d;
+            margin-bottom: 5px;
+        }
+
+        .viz-card-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e3c72;
+            margin-bottom: 8px;
+        }
+
+        .viz-card-info {
+            font-size: 13px;
+            color: #718096;
+            line-height: 1.6;
+        }
+
+        .viz-group {
+            margin-bottom: 30px;
+        }
+
+        .viz-group-header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .viz-group-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .viz-group-count {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        /* 시각화 컨트롤 스타일 */
+        .visualization-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #4a5568;
+        }
+
+        .control-group select {
+            min-width: 200px;
+            padding: 10px 12px;
+            border: 1.5px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 타임라인 스타일 */
+        .viz-timeline {
+            position: relative;
+            padding: 40px 0;
+        }
+
+        .viz-timeline-line {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #2a5298, #1e88e5, #43a047);
+        }
+
+        .viz-timeline-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 80px;
+        }
+
+        .viz-timeline-item {
+            flex: 0 0 calc(20% - 12px);
+            min-width: 150px;
+        }
+
+        .viz-timeline-marker {
+            width: 12px;
+            height: 12px;
+            background: #2a5298;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #2a5298;
+        }
+
+        .viz-card-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            background: #f0f3f7;
+            border-radius: 4px;
+            font-size: 11px;
+            margin: 3px 2px;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            header {
+                padding: 20px 15px;
+            }
+
+            header h1 {
+                font-size: 22px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tab-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .tab {
+                white-space: nowrap;
+            }
+
+            .viz-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            
+            .viz-timeline-item {
+                flex: 0 0 calc(50% - 8px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🎯 Tactical CRM</h1>
+            <p>Defense Industry Customer Relationship Management</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="tab-container">
+            <button class="tab active" onclick="switchTab('customers')">고객 목록</button>
+            <button class="tab" onclick="switchTab('key-customers')">핵심 고객</button>
+            <button class="tab" onclick="switchTab('todo')">
+                To-Do List
+                <span id="todo-badge" class="tab-badge" style="display: none;">0</span>
+            </button>
+            <button class="tab" onclick="switchTab('add')">고객 추가</button>
+            <button class="tab" onclick="switchTab('network')">관계도</button>
+            <button class="btn btn-secondary" onclick="exportData()" style="margin-left: auto;">📤 데이터 내보내기</button>
+            <button class="btn btn-secondary" onclick="openImportModal()">📥 데이터 가져오기</button>
+            <button class="btn btn-secondary" onclick="loadPromotionData()" style="background: #43a047; color: white;">⭐ 2025.11 진급자</button>
+        </div>
+        
+        <!-- iCloud 동기화 상태 알림 -->
+        <div id="icloud-status-banner" style="display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span id="icloud-banner-icon" style="font-size: 20px;">☁️</span>
+                <span id="icloud-banner-text">iCloud 동기화 준비 중...</span>
+            </div>
+            <button onclick="hideICloudBanner()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer;">닫기</button>
+        </div>
+
+        <!-- 고객 목록 섹션 -->
+        <div id="customers-section" class="content-section active">
+            <div class="card">
+                <h2>등록된 고객</h2>
+                <div class="search-box">
+                    <input type="text" id="customer-search" placeholder="이름, 직책, 기관, 기수 등으로 검색..." onkeyup="searchCustomers()">
+                    <button class="btn btn-secondary" onclick="clearSearch()">검색 초기화</button>
+                </div>
+                <div id="customer-list" class="customer-list"></div>
+            </div>
+        </div>
+
+        <!-- 핵심 고객 섹션 -->
+        <div id="key-customers-section" class="content-section">
+            <div class="card">
+                <h2>핵심 고객 관리</h2>
+                <p style="color: #5a6c7d; margin-bottom: 20px;">핵심 고객으로 지정된 인원들을 관리합니다</p>
+                
+                <div class="key-customer-filter">
+                    <button class="filter-btn active" onclick="filterKeyCustomers('all')">전체</button>
+                    <button class="filter-btn" onclick="filterKeyCustomers('육군')">육군</button>
+                    <button class="filter-btn" onclick="filterKeyCustomers('해군')">해군</button>
+                    <button class="filter-btn" onclick="filterKeyCustomers('공군')">공군</button>
+                    <button class="filter-btn" onclick="filterKeyCustomers('연구기관')">연구기관</button>
+                    <button class="filter-btn" onclick="filterKeyCustomers('공무원')">공무원</button>
+                    <button class="filter-btn" onclick="filterKeyCustomers('기업')">기업</button>
+                </div>
+
+                <div id="key-customers-list" class="customer-list"></div>
+            </div>
+        </div>
+
+        <!-- To-Do List 섹션 -->
+        <div id="todo-section" class="content-section">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>영업 활동 To-Do List</h2>
+                    <button class="btn btn-primary" onclick="openAddTodoModal()">+ 새 할 일 추가</button>
+                </div>
+                
+                <div class="todo-summary">
+                    <div class="summary-card">
+                        <div class="summary-number" id="todo-today">0</div>
+                        <div class="summary-label">오늘 할 일</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-number" id="todo-week">0</div>
+                        <div class="summary-label">이번 주</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-number" id="todo-urgent">0</div>
+                        <div class="summary-label">긴급</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-number" id="todo-completed">0</div>
+                        <div class="summary-label">완료</div>
+                    </div>
+                </div>
+
+                <div id="auto-suggestions" class="todo-category">
+                    <h3>🎯 자동 제안</h3>
+                    <div id="suggestions-list"></div>
+                </div>
+
+                <div id="urgent-todos" class="todo-category">
+                    <h3>🔴 긴급</h3>
+                    <div id="urgent-list"></div>
+                </div>
+
+                <div id="week-todos" class="todo-category">
+                    <h3>🟡 이번 주</h3>
+                    <div id="week-list"></div>
+                </div>
+
+                <div id="normal-todos" class="todo-category">
+                    <h3>🟢 일반</h3>
+                    <div id="normal-list"></div>
+                </div>
+
+                <div id="completed-todos" class="todo-category">
+                    <h3>✅ 완료</h3>
+                    <div id="completed-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 고객 추가 섹션 -->
+        <div id="add-section" class="content-section">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h2 style="margin: 0;">새 고객 등록</h2>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-secondary" onclick="showVCFImportHelp()" style="display: flex; align-items: center; gap: 8px;">
+                            ❓ 사용법
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('vcf-file-input').click()" style="display: flex; align-items: center; gap: 8px;">
+                            📁 연락처 파일 업로드
+                        </button>
+                        <input type="file" id="vcf-file-input" accept=".vcf,.vcard" style="display: none;" onchange="handleVCFUpload(event)" multiple>
+                    </div>
+                </div>
+                
+                <div id="vcf-upload-info" style="background: #e6f7ff; border: 1px solid #91d5ff; padding: 12px 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: start; gap: 10px;">
+                        <span style="font-size: 20px;">💡</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #0050b3; margin-bottom: 5px;">아이폰/안드로이드 연락처 가져오기</div>
+                            <div style="font-size: 13px; color: #096dd9; line-height: 1.5;">
+                                기기에서 연락처를 VCF 파일로 내보낸 후 업로드하면<br>
+                                모든 연락처가 자동으로 등록됩니다. <strong>[❓ 사용법]</strong> 버튼을 눌러 방법을 확인하세요!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <form id="customer-form">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>이름 *</label>
+                            <input type="text" id="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>나이</label>
+                            <input type="number" id="age" min="20" max="100" placeholder="예: 52">
+                        </div>
+                        <div class="form-group">
+                            <label>계급/직급</label>
+                            <select id="rank">
+                                <option value="">선택</option>
+                                <optgroup label="군 계급">
+                                    <option value="대장">대장</option>
+                                    <option value="중장">중장</option>
+                                    <option value="소장">소장</option>
+                                    <option value="준장">준장</option>
+                                    <option value="대령">대령</option>
+                                    <option value="중령">중령</option>
+                                    <option value="소령">소령</option>
+                                    <option value="대위">대위</option>
+                                </optgroup>
+                                <optgroup label="공무원">
+                                    <option value="국장">국장</option>
+                                    <option value="사무관">사무관</option>
+                                    <option value="주무관">주무관</option>
+                                </optgroup>
+                                <optgroup label="연구기관">
+                                    <option value="본부장">본부장</option>
+                                    <option value="소장">소장</option>
+                                    <option value="센터장">센터장</option>
+                                    <option value="실장">실장</option>
+                                    <option value="수석">수석</option>
+                                    <option value="책임">책임</option>
+                                    <option value="전문">전문</option>
+                                    <option value="선임">선임</option>
+                                </optgroup>
+                                <optgroup label="일반/기업">
+                                    <option value="부장">부장</option>
+                                    <option value="차장">차장</option>
+                                    <option value="과장">과장</option>
+                                    <option value="팀장">팀장</option>
+                                    <option value="대리">대리</option>
+                                    <option value="사원">사원</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>소속 구분</label>
+                            <select id="service">
+                                <option value="">선택</option>
+                                <optgroup label="군">
+                                    <option value="육군">육군</option>
+                                    <option value="해군">해군</option>
+                                    <option value="공군">공군</option>
+                                    <option value="해병대">해병대</option>
+                                </optgroup>
+                                <optgroup label="정출연">
+                                    <option value="ADD">ADD(국과연)</option>
+                                    <option value="국기연">국기연</option>
+                                    <option value="기품원">기품원</option>
+                                    <option value="IITP">IITP</option>
+                                    <option value="ETRI">ETRI</option>
+                                    <option value="기타연구기관">기타 연구기관</option>
+                                </optgroup>
+                                <optgroup label="기타">
+                                    <option value="공무원">공무원</option>
+                                    <option value="기업">기업</option>
+                                    <option value="기타">기타</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>기관명</label>
+                            <input type="text" id="organization" placeholder="예: 국방부, LIG넥스원">
+                        </div>
+                        <div class="form-group">
+                            <label>전화번호</label>
+                            <input type="tel" id="phone">
+                        </div>
+                        <div class="form-group">
+                            <label>출신</label>
+                            <select id="military-type">
+                                <option value="">선택</option>
+                                <option value="육사">육사</option>
+                                <option value="해사">해사</option>
+                                <option value="공사">공사</option>
+                                <option value="학사">학사</option>
+                                <option value="학군">학군</option>
+                                <option value="일반대">일반대</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>기수</label>
+                            <input type="text" id="class-number" placeholder="예: 51">
+                        </div>
+                        <div class="form-group">
+                            <label>출신학교</label>
+                            <input type="text" id="school" placeholder="예: 서울대, KAIST">
+                        </div>
+                        <div class="form-group">
+                            <label>전공</label>
+                            <input type="text" id="major" placeholder="예: 전자공학, 경영학">
+                        </div>
+                        <div class="form-group">
+                            <label>이메일</label>
+                            <input type="email" id="email" placeholder="예: hong@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>직책</label>
+                            <input type="text" id="position" placeholder="예: 2군단장, 센터장">
+                        </div>
+                        <div class="form-group">
+                            <label>부서</label>
+                            <input type="text" id="department" placeholder="예: 지휘통신부, 정보화기획부">
+                        </div>
+                        <div class="form-group">
+                            <label>부임/진급일자</label>
+                            <input type="date" id="promotion-date">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>직장 주소</label>
+                        <input type="text" id="work-address" placeholder="예: 서울시 용산구 국방부 123호">
+                    </div>
+                    <div class="form-group">
+                        <label>집 주소</label>
+                        <input type="text" id="home-address" placeholder="예: 서울시 강남구 테헤란로 456">
+                    </div>
+                    <div class="form-group">
+                        <label>가족관계</label>
+                        <textarea id="family" placeholder="예: 배우자 김OO, 자녀 2명"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>관련 고객 (쉼표로 구분)</label>
+                        <input type="text" id="relations" placeholder="예: 김철수, 이영희">
+                    </div>
+                    <div class="form-group">
+                        <label>비고</label>
+                        <textarea id="notes"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">고객 등록</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 관계도 섹션 -->
+        <div id="network-section" class="content-section">
+            <div class="card">
+                <h2>고객 관계도</h2>
+                <div class="visualization-controls">
+                    <div class="control-group">
+                        <label>보기 방식</label>
+                        <select id="viz-type" onchange="changeVisualizationType()">
+                            <option value="grid">그리드 보기</option>
+                            <option value="service-group">군종별 그룹</option>
+                            <option value="org-group">조직별 그룹 (군/연구기관/공무원)</option>
+                            <option value="rank-list">계급별 목록</option>
+                            <option value="timeline">기수별 타임라인</option>
+                            <option value="network">🔗 인맥 네트워크</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>필터</label>
+                        <select id="viz-filter" onchange="changeVisualizationType()">
+                            <option value="all">전체</option>
+                            <optgroup label="군">
+                                <option value="육군">육군만</option>
+                                <option value="해군">해군만</option>
+                                <option value="공군">공군만</option>
+                            </optgroup>
+                            <optgroup label="연구기관">
+                                <option value="ADD">ADD(국과연)만</option>
+                                <option value="국기연">국기연만</option>
+                                <option value="기품원">기품원만</option>
+                                <option value="IITP">IITP만</option>
+                            </optgroup>
+                            <optgroup label="기타">
+                                <option value="공무원">공무원만</option>
+                                <option value="방사청">방사청만</option>
+                                <option value="중장">중장만</option>
+                                <option value="핵심고객">핵심고객만</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="control-buttons">
+                        <button class="btn btn-secondary" onclick="changeVisualizationType()">새로고침</button>
+                    </div>
+                </div>
+                <div id="network-graph"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 고객 상세/수정 모달 -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>고객 정보</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="edit-form">
+                <input type="hidden" id="edit-id">
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>이름 *</label>
+                        <input type="text" id="edit-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>나이</label>
+                        <input type="number" id="edit-age" min="20" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label>계급/직급</label>
+                        <select id="edit-rank">
+                            <option value="">선택</option>
+                            <optgroup label="군 계급">
+                                <option value="대장">대장</option>
+                                <option value="중장">중장</option>
+                                <option value="소장">소장</option>
+                                <option value="준장">준장</option>
+                                <option value="대령">대령</option>
+                                <option value="중령">중령</option>
+                                <option value="소령">소령</option>
+                                <option value="대위">대위</option>
+                            </optgroup>
+                            <optgroup label="공무원">
+                                <option value="국장">국장</option>
+                                <option value="사무관">사무관</option>
+                                <option value="주무관">주무관</option>
+                            </optgroup>
+                            <optgroup label="연구기관">
+                                <option value="본부장">본부장</option>
+                                <option value="소장">소장</option>
+                                <option value="센터장">센터장</option>
+                                <option value="실장">실장</option>
+                                <option value="수석">수석</option>
+                                <option value="책임">책임</option>
+                                <option value="전문">전문</option>
+                                <option value="선임">선임</option>
+                            </optgroup>
+                            <optgroup label="일반/기업">
+                                <option value="부장">부장</option>
+                                <option value="차장">차장</option>
+                                <option value="과장">과장</option>
+                                <option value="팀장">팀장</option>
+                                <option value="대리">대리</option>
+                                <option value="사원">사원</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>소속 구분</label>
+                        <select id="edit-service">
+                            <option value="">선택</option>
+                            <optgroup label="군">
+                                <option value="육군">육군</option>
+                                <option value="해군">해군</option>
+                                <option value="공군">공군</option>
+                                <option value="해병대">해병대</option>
+                            </optgroup>
+                            <optgroup label="정출연">
+                                <option value="ADD">ADD(국과연)</option>
+                                <option value="국기연">국기연</option>
+                                <option value="기품원">기품원</option>
+                                <option value="IITP">IITP</option>
+                                <option value="ETRI">ETRI</option>
+                                <option value="기타연구기관">기타 연구기관</option>
+                            </optgroup>
+                            <optgroup label="기타">
+                                <option value="공무원">공무원</option>
+                                <option value="기업">기업</option>
+                                <option value="기타">기타</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>기관명</label>
+                        <input type="text" id="edit-organization">
+                    </div>
+                    <div class="form-group">
+                        <label>전화번호</label>
+                        <input type="tel" id="edit-phone">
+                    </div>
+                    <div class="form-group">
+                        <label>출신</label>
+                        <select id="edit-military-type">
+                            <option value="">선택</option>
+                            <option value="육사">육사</option>
+                            <option value="해사">해사</option>
+                            <option value="공사">공사</option>
+                            <option value="학사">학사</option>
+                            <option value="학군">학군</option>
+                            <option value="일반대">일반대</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>기수</label>
+                        <input type="text" id="edit-class-number">
+                    </div>
+                    <div class="form-group">
+                        <label>출신학교</label>
+                        <input type="text" id="edit-school" placeholder="예: 서울대, KAIST">
+                    </div>
+                    <div class="form-group">
+                        <label>전공</label>
+                        <input type="text" id="edit-major" placeholder="예: 전자공학, 경영학">
+                    </div>
+                    <div class="form-group">
+                        <label>이메일</label>
+                        <input type="email" id="edit-email" placeholder="예: hong@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>직책</label>
+                        <input type="text" id="edit-position" placeholder="예: 2군단장, 센터장">
+                    </div>
+                    <div class="form-group">
+                        <label>부서</label>
+                        <input type="text" id="edit-department" placeholder="예: 지휘통신부">
+                    </div>
+                    <div class="form-group">
+                        <label>부임/진급일자</label>
+                        <input type="date" id="edit-promotion-date">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>직장 주소</label>
+                    <input type="text" id="edit-work-address" placeholder="예: 서울시 용산구 국방부 123호">
+                </div>
+                <div class="form-group">
+                    <label>집 주소</label>
+                    <input type="text" id="edit-home-address" placeholder="예: 서울시 강남구 테헤란로 456">
+                </div>
+                <div class="form-group">
+                    <label>가족관계</label>
+                    <textarea id="edit-family"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>관련 고객 (쉼표로 구분)</label>
+                    <input type="text" id="edit-relations">
+                </div>
+                <div class="form-group">
+                    <label>비고</label>
+                    <textarea id="edit-notes"></textarea>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">저장</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteCustomer()" style="flex: 1;">삭제</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 데이터 가져오기 모달 -->
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>데이터 가져오기</h2>
+                <button class="close-btn" onclick="closeImportModal()">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <p style="color: #5a6c7d; margin-bottom: 20px;">
+                    이전에 내보낸 JSON 파일을 선택하여 데이터를 가져올 수 있습니다.
+                </p>
+                
+                <div class="form-group">
+                    <label>가져오기 방식</label>
+                    <select id="import-mode" style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px;">
+                        <option value="merge">병합 (기존 데이터 유지 + 새 데이터 추가)</option>
+                        <option value="overwrite">덮어쓰기 (기존 데이터 삭제 후 새 데이터로 교체)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>파일 선택</label>
+                    <input type="file" id="import-file" accept=".json" style="width: 100%; padding: 10px; border: 1px solid #e1e8ed; border-radius: 6px;">
+                </div>
+
+                <button class="btn btn-primary" onclick="importData()" style="width: 100%; margin-top: 20px;">데이터 가져오기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VCF 업로드 사용법 안내 모달 -->
+    <div id="vcf-help-modal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>📁 연락처 파일 업로드 사용법</h2>
+                <button class="close-btn" onclick="closeVCFHelpModal()">&times;</button>
+            </div>
+            <div style="padding: 20px 0;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 10px 0; font-size: 18px;">✨ 100명도 10초만에 등록!</h3>
+                    <p style="margin: 0; font-size: 14px; opacity: 0.95;">아이폰, 안드로이드, 맥북에서 연락처를 VCF 파일로 내보낸 후<br>업로드하면 모든 정보가 자동으로 입력됩니다!</p>
+                </div>
+                
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1e3c72; margin-bottom: 15px; font-size: 16px;">📱 아이폰/아이패드에서 내보내기</h4>
+                    
+                    <div style="background: #f8fafc; border-left: 4px solid #667eea; padding: 15px; margin-bottom: 12px; border-radius: 6px;">
+                        <div style="font-weight: 600; color: #2c3e50; margin-bottom: 10px;">방법 1: iCloud 사용 (추천) ⭐</div>
+                        <div style="font-size: 14px; color: #5a6c7d; line-height: 1.6;">
+                            <strong>1️⃣ 맥/PC에서 iCloud.com 접속</strong><br>
+                            • iCloud.com → 로그인<br>
+                            • [연락처] 클릭<br><br>
+                            
+                            <strong>2️⃣ 연락처 선택</strong><br>
+                            • 좌측 하단 [모든 연락처] 클릭<br>
+                            • 또는 개별 연락처 선택 (Cmd+클릭으로 여러 개)<br><br>
+                            
+                            <strong>3️⃣ vCard 내보내기</strong><br>
+                            • 좌측 하단 ⚙️ (설정) 아이콘 클릭<br>
+                            • [vCard 내보내기...] 선택<br>
+                            • VCF 파일 다운로드 완료!<br><br>
+                            
+                            <strong>4️⃣ CRM에 업로드</strong><br>
+                            • CRM [📁 연락처 파일 업로드] 클릭<br>
+                            • 다운로드한 VCF 파일 선택<br>
+                            • 자동 등록 완료! 🎉
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8fafc; border-left: 4px solid #f5576c; padding: 15px; margin-bottom: 12px; border-radius: 6px;">
+                        <div style="font-weight: 600; color: #2c3e50; margin-bottom: 10px;">방법 2: 연락처 앱 사용</div>
+                        <div style="font-size: 14px; color: #5a6c7d; line-height: 1.6;">
+                            <strong>1️⃣ 연락처 공유</strong><br>
+                            • 연락처 앱 열기<br>
+                            • 연락처 선택<br>
+                            • [연락처 공유] 탭<br>
+                            • [파일로 저장]<br><br>
+                            
+                            <strong>2️⃣ 파일 앱에서 찾기</strong><br>
+                            • 파일 앱 열기<br>
+                            • iCloud Drive 또는 다운로드 폴더<br>
+                            • .vcf 파일 확인<br><br>
+                            
+                            <strong>3️⃣ AirDrop으로 전송</strong><br>
+                            • 맥으로 AirDrop<br>
+                            • 또는 이메일로 자신에게 전송
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1e3c72; margin-bottom: 15px; font-size: 16px;">🤖 안드로이드에서 내보내기</h4>
+                    
+                    <div style="background: #f8fafc; border-left: 4px solid #43e97b; padding: 15px; border-radius: 6px;">
+                        <div style="font-size: 14px; color: #5a6c7d; line-height: 1.6;">
+                            <strong>1️⃣ 연락처 앱 열기</strong><br><br>
+                            
+                            <strong>2️⃣ 메뉴 → 설정</strong><br>
+                            • 우측 상단 ⋮ (메뉴)<br>
+                            • [설정] 또는 [관리]<br><br>
+                            
+                            <strong>3️⃣ 연락처 내보내기</strong><br>
+                            • [연락처 내보내기] 또는 [Export]<br>
+                            • VCF 파일 형식 선택<br>
+                            • 저장 위치 선택<br><br>
+                            
+                            <strong>4️⃣ 파일 찾아 업로드</strong><br>
+                            • 다운로드 폴더에서 VCF 파일 확인<br>
+                            • CRM에 업로드
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1e3c72; margin-bottom: 15px; font-size: 16px;">💻 맥북에서 내보내기</h4>
+                    
+                    <div style="background: #f8fafc; border-left: 4px solid #4facfe; padding: 15px; border-radius: 6px;">
+                        <div style="font-size: 14px; color: #5a6c7d; line-height: 1.6;">
+                            <strong>1️⃣ 연락처 앱 열기</strong><br><br>
+                            
+                            <strong>2️⃣ 연락처 선택</strong><br>
+                            • Cmd+A: 전체 선택<br>
+                            • Cmd+클릭: 개별 선택<br><br>
+                            
+                            <strong>3️⃣ 내보내기</strong><br>
+                            • 파일 메뉴 → [vCard 내보내기...]<br>
+                            • 저장 위치 선택<br>
+                            • VCF 파일 생성 완료!<br><br>
+                            
+                            <strong>4️⃣ CRM에 업로드</strong><br>
+                            • [📁 연락처 파일 업로드] 클릭<br>
+                            • 저장한 VCF 파일 선택
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1e3c72; margin-bottom: 15px; font-size: 16px;">🎯 자동 입력 항목</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                        <div style="background: #e6f7ff; padding: 12px; border-radius: 6px; text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 5px;">👤</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #0050b3;">이름</div>
+                        </div>
+                        <div style="background: #e6f7ff; padding: 12px; border-radius: 6px; text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 5px;">📞</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #0050b3;">전화번호</div>
+                        </div>
+                        <div style="background: #e6f7ff; padding: 12px; border-radius: 6px; text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 5px;">📧</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #0050b3;">이메일</div>
+                        </div>
+                        <div style="background: #e6f7ff; padding: 12px; border-radius: 6px; text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 5px;">🏠</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #0050b3;">주소</div>
+                        </div>
+                        <div style="background: #e6f7ff; padding: 12px; border-radius: 6px; text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 5px;">💼</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #0050b3;">직책</div>
+                        </div>
+                        <div style="background: #e6f7ff; padding: 12px; border-radius: 6px; text-align: center;">
+                            <div style="font-size: 24px; margin-bottom: 5px;">🏢</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #0050b3;">회사</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1e3c72; margin-bottom: 15px; font-size: 16px;">✅ 중복 체크 기능</h4>
+                    <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 6px;">
+                        <div style="font-size: 14px; color: #856404; line-height: 1.6;">
+                            <strong>⚠️ 자동 중복 감지</strong><br>
+                            같은 이름이나 전화번호가 이미 있으면<br>
+                            자동으로 기존 정보를 업데이트합니다.<br><br>
+                            
+                            <strong>안전한 병합:</strong><br>
+                            • 빈 필드만 채워짐<br>
+                            • 기존 정보는 보존<br>
+                            • 걱정 없이 업로드!
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 25px;">
+                    <h4 style="color: #1e3c72; margin-bottom: 15px; font-size: 16px;">💡 실전 팁</h4>
+                    
+                    <div style="display: grid; gap: 12px;">
+                        <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 15px; border-radius: 8px;">
+                            <div style="font-weight: 600; margin-bottom: 5px;">📱 아이폰 추천 방법</div>
+                            <div style="font-size: 13px; opacity: 0.95;">
+                                iCloud.com 사용이 가장 편함!<br>
+                                PC에서 한번에 처리 가능
+                            </div>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 15px; border-radius: 8px;">
+                            <div style="font-weight: 600; margin-bottom: 5px;">🔢 대량 등록</div>
+                            <div style="font-size: 13px; opacity: 0.95;">
+                                100명도 한번에 OK!<br>
+                                파일 크기 제한 없음
+                            </div>
+                        </div>
+                        
+                        <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; padding: 15px; border-radius: 8px;">
+                            <div style="font-weight: 600; margin-bottom: 5px;">🔄 정기 동기화</div>
+                            <div style="font-size: 13px; opacity: 0.95;">
+                                매월 1회 VCF 업로드로<br>
+                                연락처 최신 상태 유지
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #e6f7ff; border: 2px solid #1890ff; padding: 20px; border-radius: 10px;">
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <div style="font-size: 32px; margin-bottom: 10px;">🎉</div>
+                        <div style="font-size: 18px; font-weight: 600; color: #0050b3; margin-bottom: 5px;">모든 기기 지원!</div>
+                        <div style="font-size: 14px; color: #096dd9;">
+                            iOS, Android, Mac, Windows 모두 가능<br>
+                            모든 브라우저에서 작동합니다
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; padding-top: 20px;">
+                <button class="btn btn-primary" onclick="closeVCFHelpModal()" style="padding: 12px 40px;">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- iCloud 동기화 모달 -->
+    <div id="icloud-sync-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>☁️ iCloud 동기화</h2>
+                <button class="close-btn" onclick="closeICloudSyncModal()">&times;</button>
+            </div>
+            <div style="padding: 20px 0;">
+                <div id="icloud-setup-view" style="display: none;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">☁️</div>
+                        <h3 style="margin: 0 0 10px 0; font-size: 20px;">iCloud 자동 동기화 설정</h3>
+                        <p style="margin: 0; font-size: 14px; opacity: 0.95;">iPhone, iPad, Mac에서 데이터를 자동으로 동기화합니다</p>
+                    </div>
+                    
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="color: #1e3c72; margin-bottom: 15px;">🎯 작동 방식</h4>
+                        <ul style="margin: 0; padding-left: 20px; line-height: 2;">
+                            <li>데이터 변경 시 3초 후 자동으로 iCloud에 저장</li>
+                            <li>다른 기기에서 열 때 자동으로 최신 데이터 로드</li>
+                            <li>충돌 발생 시 자동으로 최신 버전 선택</li>
+                            <li>오프라인에서도 작동 (온라인 시 동기화)</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <div style="font-weight: 600; color: #856404; margin-bottom: 8px;">📱 Safari 브라우저 필수</div>
+                        <div style="font-size: 14px; color: #856404;">
+                            iCloud 동기화는 Safari에서만 작동합니다.<br>
+                            Chrome, Edge에서는 지원되지 않습니다.
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="setupICloudSync()" style="width: 100%; padding: 15px; font-size: 16px;">
+                        ☁️ iCloud 동기화 시작하기
+                    </button>
+                </div>
+                
+                <div id="icloud-status-view" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 25px;">
+                        <div id="sync-status-icon" style="font-size: 64px; margin-bottom: 15px;">☁️</div>
+                        <div id="sync-status-text" style="font-size: 18px; font-weight: 600; color: #1e3c72; margin-bottom: 8px;">iCloud 동기화 활성화됨</div>
+                        <div id="sync-status-detail" style="font-size: 14px; color: #5a6c7d;">마지막 동기화: 방금 전</div>
+                    </div>
+                    
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: 700; color: #667eea;" id="sync-customer-count">0</div>
+                                <div style="font-size: 13px; color: #5a6c7d;">고객 수</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: 700; color: #667eea;" id="sync-file-size">0 KB</div>
+                                <div style="font-size: 13px; color: #5a6c7d;">파일 크기</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 13px; color: #718096; text-align: center;">
+                            <div id="sync-devices">동기화된 기기: 이 기기</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; gap: 10px;">
+                        <button class="btn btn-primary" onclick="manualSyncToICloud()" style="width: 100%;">
+                            ↑ 지금 iCloud에 저장
+                        </button>
+                        <button class="btn btn-secondary" onclick="manualSyncFromICloud()" style="width: 100%;">
+                            ↓ iCloud에서 가져오기
+                        </button>
+                        <button class="btn btn-secondary" onclick="toggleAutoSync()" style="width: 100%;">
+                            <span id="auto-sync-toggle-text">🔄 자동 동기화: ON</span>
+                        </button>
+                        <button class="btn btn-danger" onclick="disableICloudSync()" style="width: 100%;">
+                            ❌ iCloud 동기화 해제
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- To-Do 추가/편집 모달 -->
+    <div id="todo-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="todo-modal-title">새 할 일 추가</h2>
+                <button class="close-btn" onclick="closeTodoModal()">&times;</button>
+            </div>
+            <form id="todo-form">
+                <input type="hidden" id="todo-id">
+                <div class="form-group">
+                    <label>할 일 *</label>
+                    <input type="text" id="todo-task" required placeholder="예: 합참 지통부장 신규 부임 인사">
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>관련 고객</label>
+                        <select id="todo-customer">
+                            <option value="">선택 (선택사항)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>마감일</label>
+                        <input type="date" id="todo-deadline">
+                    </div>
+                    <div class="form-group">
+                        <label>우선순위</label>
+                        <select id="todo-priority">
+                            <option value="normal">일반</option>
+                            <option value="urgent">긴급</option>
+                            <option value="high">높음</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>메모</label>
+                    <textarea id="todo-notes" placeholder="추가 정보나 메모"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">저장</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 뉴스 전체화면 모달 -->
+
+    <script>
+        // 데이터 저장소
+        let customers = JSON.parse(localStorage.getItem('customers') || '[]');
+        let todos = JSON.parse(localStorage.getItem('todos') || '[]');
+        let keyCustomerIds = JSON.parse(localStorage.getItem('keyCustomerIds') || '[]'); // 핵심 고객 ID 목록
+        let currentEditId = null;
+        let currentTodoId = null;
+        let currentKeyFilter = 'all';
+
+        // 탭 전환
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            
+            const clickedTab = Array.from(document.querySelectorAll('.tab')).find(t => 
+                t.textContent.includes(tab === 'customers' ? '고객 목록' : 
+                                      tab === 'key-customers' ? '핵심 고객' :
+                                      tab === 'todo' ? 'To-Do' :
+                                      tab === 'add' ? '고객 추가' : '관계도')
+            );
+            if (clickedTab) clickedTab.classList.add('active');
+            
+            document.getElementById(`${tab}-section`).classList.add('active');
+            
+            if (tab === 'customers') {
+                renderCustomerList();
+            } else if (tab === 'key-customers') {
+                renderKeyCustomers();
+            } else if (tab === 'todo') {
+                renderTodoList();
+            } else if (tab === 'network') {
+                setTimeout(function() {
+                    renderNetworkGraph();
+                }, 300);
+            }
+        }
+        
+        // VCF 사용법 모달
+        function showVCFImportHelp() {
+            document.getElementById('vcf-help-modal').classList.add('active');
+        }
+        
+        function closeVCFHelpModal() {
+            document.getElementById('vcf-help-modal').classList.remove('active');
+        }
+        
+        // VCF 파일 업로드 처리
+        function handleVCFUpload(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+            
+            let totalContacts = 0;
+            let addedCount = 0;
+            let updatedCount = 0;
+            let processedFiles = 0;
+            
+            // 모든 파일 처리
+            Array.from(files).forEach(function(file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const vcfContent = e.target.result;
+                    const contacts = parseVCF(vcfContent);
+                    
+                    totalContacts += contacts.length;
+                    
+                    contacts.forEach(function(contact) {
+                        // 중복 체크
+                        const duplicate = checkDuplicateContact(contact);
+                        
+                        if (duplicate) {
+                            // 기존 고객 업데이트
+                            updateExistingCustomer(duplicate.id, contact);
+                            updatedCount++;
+                        } else {
+                            // 새 고객 추가
+                            const customer = createCustomerFromContact(contact);
+                            customers.push(customer);
+                            addedCount++;
+                        }
+                    });
+                    
+                    processedFiles++;
+                    
+                    // 모든 파일 처리 완료
+                    if (processedFiles === files.length) {
+                        localStorage.setItem('customers', JSON.stringify(customers));
+                        
+                        // iCloud 자동 동기화 트리거
+                        // triggerAutoSync(); // iCloud 기능 비활성화
+                        
+                        renderCustomerList();
+                        
+                        let message = '✅ VCF 파일 가져오기 완료!\n\n';
+                        message += '총 연락처: ' + totalContacts + '명\n';
+                        message += '• 새로 추가: ' + addedCount + '명\n';
+                        if (updatedCount > 0) {
+                            message += '• 업데이트: ' + updatedCount + '명\n';
+                        }
+                        message += '\n고객 목록에서 추가 정보를 입력해주세요.';
+                        
+                        alert(message);
+                        switchTab('customers');
+                        
+                        // 입력 초기화
+                        event.target.value = '';
+                    }
+                };
+                
+                reader.onerror = function() {
+                    alert('파일을 읽는 중 오류가 발생했습니다: ' + file.name);
+                };
+                
+                reader.readAsText(file, 'UTF-8');
+            });
+        }
+        
+        // VCF 파싱 함수
+        function parseVCF(vcfContent) {
+            const contacts = [];
+            const vcards = vcfContent.split('BEGIN:VCARD');
+            
+            vcards.forEach(function(vcard) {
+                if (!vcard.trim()) return;
+                
+                const contact = {
+                    name: [],
+                    tel: [],
+                    email: [],
+                    address: [],
+                    org: null,
+                    title: null
+                };
+                
+                const lines = vcard.split(/\r?\n/);
+                
+                lines.forEach(function(line) {
+                    line = line.trim();
+                    if (!line) return;
+                    
+                    // FN (Formatted Name)
+                    if (line.startsWith('FN:') || line.startsWith('FN;')) {
+                        const name = line.split(':')[1];
+                        if (name) contact.name.push(name.trim());
+                    }
+                    
+                    // N (Name - structured)
+                    else if (line.startsWith('N:') && contact.name.length === 0) {
+                        const parts = line.split(':')[1].split(';');
+                        const lastName = parts[0] || '';
+                        const firstName = parts[1] || '';
+                        const fullName = (lastName + firstName).trim();
+                        if (fullName) contact.name.push(fullName);
+                    }
+                    
+                    // TEL (Telephone)
+                    else if (line.startsWith('TEL:') || line.startsWith('TEL;')) {
+                        const tel = line.split(':').pop();
+                        if (tel) contact.tel.push(tel.trim());
+                    }
+                    
+                    // EMAIL
+                    else if (line.startsWith('EMAIL:') || line.startsWith('EMAIL;')) {
+                        const email = line.split(':').pop();
+                        if (email) contact.email.push(email.trim());
+                    }
+                    
+                    // ADR (Address)
+                    else if (line.startsWith('ADR:') || line.startsWith('ADR;')) {
+                        const adr = line.split(':').pop();
+                        if (adr) {
+                            const parts = adr.split(';').filter(function(p) { return p.trim(); });
+                            const address = parts.join(' ').trim();
+                            if (address) contact.address.push(address);
+                        }
+                    }
+                    
+                    // ORG (Organization)
+                    else if (line.startsWith('ORG:') || line.startsWith('ORG;')) {
+                        const org = line.split(':').pop();
+                        if (org) contact.org = org.trim();
+                    }
+                    
+                    // TITLE (Job Title)
+                    else if (line.startsWith('TITLE:') || line.startsWith('TITLE;')) {
+                        const title = line.split(':').pop();
+                        if (title) contact.title = title.trim();
+                    }
+                });
+                
+                // 이름이 있는 연락처만 추가
+                if (contact.name.length > 0) {
+                    contacts.push(contact);
+                }
+            });
+            
+            return contacts;
+        }
+        
+        // 중복 연락처 체크
+        function checkDuplicateContact(contact) {
+            if (!contact.name || contact.name.length === 0) return null;
+            
+            const name = contact.name[0];
+            const tel = contact.tel && contact.tel.length > 0 ? contact.tel[0] : null;
+            
+            // 이름 또는 전화번호로 중복 체크
+            const duplicate = customers.find(function(c) {
+                if (c.name === name) return true;
+                if (tel && c.phone === tel) return true;
+                return false;
+            });
+            
+            return duplicate || null;
+        }
+        
+        // 기존 고객 정보 업데이트
+        function updateExistingCustomer(customerId, contact) {
+            const index = customers.findIndex(function(c) { return c.id === customerId; });
+            if (index === -1) return;
+            
+            // 전화번호 업데이트 (빈 경우만)
+            if (contact.tel && contact.tel.length > 0 && !customers[index].phone) {
+                customers[index].phone = contact.tel[0];
+            }
+            
+            // 이메일 업데이트 (빈 경우만)
+            if (contact.email && contact.email.length > 0 && !customers[index].email) {
+                customers[index].email = contact.email[0];
+            }
+            
+            // 주소 업데이트 (빈 경우만)
+            if (contact.address && contact.address.length > 0 && !customers[index].homeAddress) {
+                customers[index].homeAddress = contact.address[0];
+            }
+            
+            // 조직/회사 업데이트 (빈 경우만)
+            if (contact.org && !customers[index].organization) {
+                customers[index].organization = contact.org;
+            }
+            
+            // 직책 업데이트 (빈 경우만)
+            if (contact.title && !customers[index].position) {
+                customers[index].position = contact.title;
+            }
+            
+            localStorage.setItem('customers', JSON.stringify(customers));
+        }
+        
+        // 연락처에서 고객 객체 생성
+        function createCustomerFromContact(contact) {
+            const customer = {
+                id: Date.now() + Math.random(),
+                name: contact.name && contact.name.length > 0 ? contact.name[0] : '',
+                email: contact.email && contact.email.length > 0 ? contact.email[0] : '',
+                phone: contact.tel && contact.tel.length > 0 ? contact.tel[0] : '',
+                homeAddress: contact.address && contact.address.length > 0 ? contact.address[0] : '',
+                organization: contact.org || '',
+                position: contact.title || '',
+                
+                // 빈 필드들
+                age: '',
+                rank: '',
+                service: '',
+                militaryType: '',
+                classNumber: '',
+                school: '',
+                major: '',
+                workAddress: '',
+                department: '',
+                promotionDate: '',
+                family: '',
+                teamMembers: [],
+                relations: '',
+                notes: 'VCF 파일에서 가져옴',
+                createdAt: new Date().toISOString(),
+                isKeyCustomer: false
+            };
+            
+            return customer;
+        }
+
+        // 고객 추가
+        document.getElementById('customer-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const customer = {
+                id: Date.now(),
+                name: document.getElementById('name').value,
+                age: document.getElementById('age').value,
+                rank: document.getElementById('rank').value,
+                service: document.getElementById('service').value,
+                organization: document.getElementById('organization').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                school: document.getElementById('school').value,
+                major: document.getElementById('major').value,
+                militaryType: document.getElementById('military-type').value,
+                classNumber: document.getElementById('class-number').value,
+                workAddress: document.getElementById('work-address').value,
+                homeAddress: document.getElementById('home-address').value,
+                position: document.getElementById('position').value,
+                department: document.getElementById('department').value,
+                promotionDate: document.getElementById('promotion-date').value,
+                family: document.getElementById('family').value,
+                relations: document.getElementById('relations').value,
+                notes: document.getElementById('notes').value,
+                createdAt: new Date().toISOString()
+            };
+            
+            customers.push(customer);
+            localStorage.setItem('customers', JSON.stringify(customers));
+            
+            // iCloud 자동 동기화 트리거
+            // triggerAutoSync(); // iCloud 기능 비활성화
+            
+            this.reset();
+            alert('고객이 등록되었습니다.');
+            
+            renderKeyCustomers(); // 핵심 고객 목록도 업데이트
+            switchTab('customers');
+            
+            checkAndUpdateTodos();
+        });
+
+        // 고객 목록 렌더링
+        function renderCustomerList(searchTerm) {
+            const container = document.getElementById('customer-list');
+            
+            var displayCustomers = customers;
+            
+            if (searchTerm) {
+                var term = searchTerm.toLowerCase();
+                displayCustomers = customers.filter(function(c) {
+                    return (c.name && c.name.toLowerCase().includes(term)) ||
+                           (c.position && c.position.toLowerCase().includes(term)) ||
+                           (c.department && c.department.toLowerCase().includes(term)) ||
+                           (c.organization && c.organization.toLowerCase().includes(term)) ||
+                           (c.militaryType && c.militaryType.toLowerCase().includes(term)) ||
+                           (c.classNumber && c.classNumber.includes(term)) ||
+                           (c.rank && c.rank.toLowerCase().includes(term)) ||
+                           (c.service && c.service.toLowerCase().includes(term));
+                });
+            }
+            
+            if (displayCustomers.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>' + (searchTerm ? '검색 결과가 없습니다' : '등록된 고객이 없습니다') + '</h3><p>' + (searchTerm ? '다른 검색어를 입력해주세요' : '새 고객을 추가해주세요') + '</p></div>';
+                return;
+            }
+            
+            container.innerHTML = displayCustomers.map(function(customer) {
+                // 핵심 고객 여부 확인
+                var isKey = keyCustomerIds.includes(customer.id);
+                var keyBadge = isKey ? '<span class="viz-card-badge" style="background: #e53e3e; color: white; margin-left: 8px;">⭐</span>' : '';
+                
+                return '<div class="customer-card"><h3>' + 
+                    (customer.rank ? customer.rank + ' ' : '') + 
+                    customer.name + 
+                    (customer.age ? ' (' + customer.age + '세)' : '') + 
+                    keyBadge +
+                    '</h3><div class="customer-info">' +
+                    (customer.service ? '<span><strong>•</strong> ' + customer.service + '</span>' : '') +
+                    (customer.position ? '<span><strong>•</strong> ' + customer.position + '</span>' : '') +
+                    (customer.department ? '<span><strong>•</strong> ' + customer.department + '</span>' : '') +
+                    (customer.organization ? '<span><strong>•</strong> ' + customer.organization + '</span>' : '') +
+                    (customer.militaryType && customer.classNumber ? '<span><strong>•</strong> ' + customer.militaryType + ' ' + customer.classNumber + '기</span>' : '') +
+                    (customer.phone ? '<span><strong>•</strong> ' + customer.phone + '</span>' : '') +
+                    '</div><div class="action-buttons">' +
+                    '<button class="btn btn-primary" onclick="editCustomer(' + customer.id + ')">상세보기/수정</button>' +
+                    (isKey ? 
+                        '<button class="btn btn-secondary" onclick="removeFromKeyCustomers(' + customer.id + ')" style="padding: 8px 12px; font-size: 12px;">⭐ 해제</button>' :
+                        '<button class="btn btn-secondary" onclick="addToKeyCustomers(' + customer.id + ')" style="background: #e53e3e; color: white; padding: 8px 12px; font-size: 12px;">⭐ 지정</button>') +
+                    '</div></div>';
+            }).join('');
+        }
+        
+        // 검색 기능
+        function searchCustomers() {
+            var searchTerm = document.getElementById('customer-search').value;
+            renderCustomerList(searchTerm);
+        }
+        
+        function clearSearch() {
+            document.getElementById('customer-search').value = '';
+            renderCustomerList();
+        }
+        
+        // 핵심 고객 추가
+        window.addToKeyCustomers = function(customerId) {
+            console.log('=== addToKeyCustomers 호출됨 ===');
+            console.log('customerId:', customerId);
+            console.log('keyCustomerIds (현재):', keyCustomerIds);
+            
+            if (!keyCustomerIds.includes(customerId)) {
+                keyCustomerIds.push(customerId);
+                localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
+                
+                console.log('핵심 고객 추가:', customerId);
+                console.log('현재 핵심 고객 ID 목록:', keyCustomerIds);
+                
+                // iCloud 동기화
+                // triggerAutoSync(); // iCloud 기능 비활성화
+                
+                // 화면 새로고침
+                renderCustomerList();
+                renderKeyCustomers();
+                
+                var customer = customers.find(function(c) { return c.id === customerId; });
+                alert('⭐ ' + (customer ? customer.name : '') + '님을 핵심 고객으로 지정했습니다.');
+            } else {
+                console.log('이미 핵심 고객입니다');
+                alert('이미 핵심 고객으로 지정되어 있습니다.');
+            }
+        }
+        
+        // 핵심 고객 제거
+        window.removeFromKeyCustomers = function(customerId) {
+            console.log('=== removeFromKeyCustomers 호출됨 ===');
+            console.log('customerId:', customerId);
+            
+            keyCustomerIds = keyCustomerIds.filter(function(id) { return id !== customerId; });
+            localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
+            
+            console.log('핵심 고객 제거:', customerId);
+            console.log('현재 핵심 고객 ID 목록:', keyCustomerIds);
+            
+            // iCloud 동기화
+            // triggerAutoSync(); // iCloud 기능 비활성화
+            
+            // 화면 새로고침
+            renderCustomerList();
+            renderKeyCustomers();
+            
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            alert((customer ? customer.name : '') + '님을 핵심 고객에서 해제했습니다.');
+        }
+
+        // 핵심 고객 렌더링
+        function renderKeyCustomers() {
+            const container = document.getElementById('key-customers-list');
+            
+            console.log('=== 핵심 고객 렌더링 시작 ===');
+            console.log('핵심 고객 ID 목록:', keyCustomerIds);
+            console.log('전체 고객 수:', customers.length);
+            
+            // keyCustomerIds 배열의 ID를 가진 고객들만 필터링
+            var keyCustomers = customers.filter(function(c) {
+                return keyCustomerIds.includes(c.id);
+            });
+            
+            console.log('필터링된 핵심 고객 수:', keyCustomers.length);
+            console.log('핵심 고객 목록:', keyCustomers.map(function(c) { return c.name; }));
+
+            // 필터 적용
+            if (currentKeyFilter !== 'all') {
+                keyCustomers = keyCustomers.filter(function(c) {
+                    if (currentKeyFilter === '연구기관') {
+                        return ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'IITP', 'ETRI', '기타연구기관'].includes(c.service) ||
+                               ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'IITP', 'ETRI', '기타연구기관'].includes(c.organization);
+                    } else if (currentKeyFilter === '공무원') {
+                        return c.service === '공무원' || c.organization === '공무원';
+                    } else if (currentKeyFilter === '기업') {
+                        return c.service === '기업' || c.organization === '기업';
+                    } else {
+                        return c.service === currentKeyFilter || c.organization === currentKeyFilter;
+                    }
+                });
+            }
+            
+            if (keyCustomers.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>핵심 고객이 없습니다</h3><p>고객 목록에서 "⭐ 핵심 지정" 버튼을 클릭하세요</p></div>';
+                return;
+            }
+
+            // 소속별 그룹화
+            var grouped = {};
+            keyCustomers.forEach(function(c) {
+                var group = c.service || c.organization || '미분류';
+                // ADD와 국과연 통합
+                if (group === '국과연' || group === 'ADD') {
+                    group = 'ADD(국과연)';
+                }
+                if (!grouped[group]) grouped[group] = [];
+                grouped[group].push(c);
+            });
+
+            var html = '';
+            Object.keys(grouped).forEach(function(group) {
+                var bgColor = getServiceColor(group);
+                html += '<div class="viz-group">';
+                html += '<div class="viz-group-header" style="background: ' + bgColor + ';">';
+                html += '<div class="viz-group-title">' + group + '</div>';
+                html += '<div class="viz-group-count">' + grouped[group].length + '명</div>';
+                html += '</div>';
+                html += '<div class="customer-list">';
+                
+                grouped[group].forEach(function(customer) {
+                    html += '<div class="customer-card"><h3>' + 
+                        (customer.rank ? customer.rank + ' ' : '') + 
+                        customer.name + 
+                        (customer.age ? ' (' + customer.age + '세)' : '') + 
+                        '<span class="viz-card-badge" style="background: #e53e3e; color: white; margin-left: 8px;">⭐</span>' +
+                        '</h3><div class="customer-info">' +
+                        (customer.service ? '<span><strong>•</strong> ' + customer.service + '</span>' : '') +
+                        (customer.position ? '<span><strong>•</strong> ' + customer.position + '</span>' : '') +
+                        (customer.department ? '<span><strong>•</strong> ' + customer.department + '</span>' : '') +
+                        (customer.organization ? '<span><strong>•</strong> ' + customer.organization + '</span>' : '') +
+                        (customer.militaryType && customer.classNumber ? '<span><strong>•</strong> ' + customer.militaryType + ' ' + customer.classNumber + '기</span>' : '') +
+                        (customer.phone ? '<span><strong>•</strong> ' + customer.phone + '</span>' : '') +
+                        '</div><div class="action-buttons">' +
+                        '<button class="btn btn-primary" onclick="editCustomer(' + customer.id + ')">상세보기/수정</button>' +
+                        '<button class="btn btn-secondary" onclick="removeFromKeyCustomers(' + customer.id + ')" style="padding: 8px 12px; font-size: 12px;">⭐ 해제</button>' +
+                        '</div></div>';
+                });
+                
+                html += '</div></div>';
+            });
+            
+            container.innerHTML = html;
+        }
+
+        // 핵심 고객 필터
+        function filterKeyCustomers(filter) {
+            currentKeyFilter = filter;
+            
+            // 버튼 활성화 상태 변경
+            document.querySelectorAll('.filter-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            renderKeyCustomers();
+        }
+
+        // 고객 수정
+        function editCustomer(id) {
+            currentEditId = id;
+            const customer = customers.find(c => c.id === id);
+            
+            document.getElementById('edit-id').value = customer.id;
+            document.getElementById('edit-name').value = customer.name;
+            document.getElementById('edit-age').value = customer.age || '';
+            document.getElementById('edit-rank').value = customer.rank || '';
+            document.getElementById('edit-service').value = customer.service || '';
+            document.getElementById('edit-organization').value = customer.organization || '';
+            document.getElementById('edit-phone').value = customer.phone || '';
+            document.getElementById('edit-email').value = customer.email || '';
+            document.getElementById('edit-school').value = customer.school || '';
+            document.getElementById('edit-major').value = customer.major || '';
+            document.getElementById('edit-military-type').value = customer.militaryType || '';
+            document.getElementById('edit-class-number').value = customer.classNumber || '';
+            document.getElementById('edit-work-address').value = customer.workAddress || '';
+            document.getElementById('edit-home-address').value = customer.homeAddress || '';
+            document.getElementById('edit-position').value = customer.position || '';
+            document.getElementById('edit-department').value = customer.department || '';
+            document.getElementById('edit-promotion-date').value = customer.promotionDate || '';
+            document.getElementById('edit-family').value = customer.family || '';
+            document.getElementById('edit-relations').value = customer.relations || '';
+            document.getElementById('edit-notes').value = customer.notes || '';
+            
+            document.getElementById('edit-modal').classList.add('active');
+        }
+        
+        // 고객 수정 저장
+        document.getElementById('edit-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const id = parseInt(document.getElementById('edit-id').value);
+            const index = customers.findIndex(c => c.id === id);
+            
+            customers[index] = {
+                ...customers[index],
+                name: document.getElementById('edit-name').value,
+                age: document.getElementById('edit-age').value,
+                rank: document.getElementById('edit-rank').value,
+                service: document.getElementById('edit-service').value,
+                organization: document.getElementById('edit-organization').value,
+                phone: document.getElementById('edit-phone').value,
+                email: document.getElementById('edit-email').value,
+                school: document.getElementById('edit-school').value,
+                major: document.getElementById('edit-major').value,
+                militaryType: document.getElementById('edit-military-type').value,
+                classNumber: document.getElementById('edit-class-number').value,
+                workAddress: document.getElementById('edit-work-address').value,
+                homeAddress: document.getElementById('edit-home-address').value,
+                position: document.getElementById('edit-position').value,
+                department: document.getElementById('edit-department').value,
+                promotionDate: document.getElementById('edit-promotion-date').value,
+                family: document.getElementById('edit-family').value,
+                relations: document.getElementById('edit-relations').value,
+                notes: document.getElementById('edit-notes').value
+            };
+            
+            localStorage.setItem('customers', JSON.stringify(customers));
+            
+            // iCloud 자동 동기화 트리거
+            // triggerAutoSync(); // iCloud 기능 비활성화
+            
+            closeModal();
+            renderCustomerList();
+            renderKeyCustomers(); // 핵심 고객 목록도 업데이트
+            
+            alert('고객 정보가 수정되었습니다.');
+            
+            checkAndUpdateTodos();
+        });
+
+        // 고객 삭제
+        function deleteCustomer() {
+            if (!confirm('정말 이 고객을 삭제하시겠습니까?')) return;
+            
+            const id = parseInt(document.getElementById('edit-id').value);
+            customers = customers.filter(c => c.id !== id);
+            
+            // 핵심 고객 목록에서도 제거
+            keyCustomerIds = keyCustomerIds.filter(function(keyId) { return keyId !== id; });
+            
+            localStorage.setItem('customers', JSON.stringify(customers));
+            localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
+            
+            // iCloud 자동 동기화 트리거
+            // triggerAutoSync(); // iCloud 기능 비활성화
+            
+            closeModal();
+            renderCustomerList();
+            renderKeyCustomers(); // 핵심 고객 목록도 업데이트
+            alert('고객이 삭제되었습니다.');
+        }
+
+        // 모달 닫기
+        function closeModal() {
+            document.getElementById('edit-modal').classList.remove('active');
+        }
+
+        function openImportModal() {
+            document.getElementById('import-modal').classList.add('active');
+        }
+        
+        function closeImportModal() {
+            document.getElementById('import-modal').classList.remove('active');
+            document.getElementById('import-file').value = '';
+        }
+
+        // 데이터 내보내기
+        function exportData() {
+            var exportData = {
+                customers: customers,
+                todos: todos,
+                keyCustomerIds: keyCustomerIds,
+                exportDate: new Date().toISOString(),
+                version: "5.2"
+            };
+            
+            var dataStr = JSON.stringify(exportData, null, 2);
+            var dataBlob = new Blob([dataStr], { type: 'application/json' });
+            var url = URL.createObjectURL(dataBlob);
+            
+            var link = document.createElement('a');
+            link.href = url;
+            var dateStr = new Date().toISOString().split('T')[0];
+            link.download = 'defense-crm-backup-' + dateStr + '.json';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            alert('데이터가 성공적으로 내보내졌습니다.\n파일: defense-crm-backup-' + dateStr + '.json');
+        }
+
+        // 데이터 가져오기
+        function importData() {
+            var fileInput = document.getElementById('import-file');
+            var mode = document.getElementById('import-mode').value;
+            
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert('파일을 선택해주세요.');
+                return;
+            }
+            
+            var file = fileInput.files[0];
+            var reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    var importedData = JSON.parse(e.target.result);
+                    
+                    if (!importedData.customers || !Array.isArray(importedData.customers)) {
+                        throw new Error('잘못된 파일 형식입니다.');
+                    }
+                    
+                    var message = '';
+                    
+                    if (mode === 'overwrite') {
+                        if (!confirm('⚠️ 경고: 현재 모든 데이터가 삭제됩니다.\n\n정말 덮어쓰시겠습니까?')) {
+                            return;
+                        }
+                        
+                        customers = importedData.customers;
+                        todos = importedData.todos || [];
+                        keyCustomerIds = importedData.keyCustomerIds || [];
+                        
+                        message = '데이터를 덮어썼습니다.\n고객: ' + customers.length + '명\n할 일: ' + todos.length + '개\n핵심 고객: ' + keyCustomerIds.length + '명';
+                    } else {
+                        var beforeCount = customers.length;
+                        var beforeTodoCount = todos.length;
+                        
+                        var existingNames = customers.map(function(c) { return c.name; });
+                        var newCustomers = importedData.customers.filter(function(c) {
+                            return !existingNames.includes(c.name);
+                        });
+                        
+                        var maxId = customers.length > 0 ? Math.max.apply(null, customers.map(function(c) { return c.id; })) : 0;
+                        newCustomers.forEach(function(c, index) {
+                            c.id = maxId + index + 1;
+                        });
+                        
+                        customers = customers.concat(newCustomers);
+                        
+                        if (importedData.todos) {
+                            var maxTodoId = todos.length > 0 ? Math.max.apply(null, todos.map(function(t) { return t.id; })) : 0;
+                            importedData.todos.forEach(function(t, index) {
+                                t.id = maxTodoId + index + 1;
+                                todos.push(t);
+                            });
+                        }
+                        
+                        // 핵심 고객 ID 병합 (중복 제거)
+                        if (importedData.keyCustomerIds) {
+                            importedData.keyCustomerIds.forEach(function(id) {
+                                if (!keyCustomerIds.includes(id)) {
+                                    keyCustomerIds.push(id);
+                                }
+                            });
+                        }
+                        
+                        var addedCustomers = customers.length - beforeCount;
+                        var addedTodos = todos.length - beforeTodoCount;
+                        
+                        message = '데이터를 병합했습니다.\n\n추가된 고객: ' + addedCustomers + '명\n추가된 할 일: ' + addedTodos + '개\n핵심 고객: ' + keyCustomerIds.length + '명';
+                    }
+                    
+                    localStorage.setItem('customers', JSON.stringify(customers));
+                    localStorage.setItem('todos', JSON.stringify(todos));
+                    localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
+                    
+                    // iCloud 자동 동기화 트리거
+                    // triggerAutoSync(); // iCloud 기능 비활성화
+                    
+                    closeImportModal();
+                    renderCustomerList();
+                    checkAndUpdateTodos();
+                    
+                    alert(message);
+                    
+                } catch (error) {
+                    alert('파일을 읽는 중 오류가 발생했습니다.\n\n' + error.message);
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // 관계도 렌더링
+        function renderNetworkGraph() {
+            setTimeout(function() {
+                changeVisualizationType();
+            }, 100);
+        }
+        
+        function changeVisualizationType() {
+            var type = document.getElementById('viz-type') ? document.getElementById('viz-type').value : 'grid';
+            var filter = document.getElementById('viz-filter') ? document.getElementById('viz-filter').value : 'all';
+            
+            switch(type) {
+                case 'grid':
+                    renderGridView(filter);
+                    break;
+                case 'service-group':
+                    renderServiceGroupView(filter);
+                    break;
+                case 'org-group':
+                    renderOrgGroupView(filter);
+                    break;
+                case 'rank-list':
+                    renderRankListView(filter);
+                    break;
+                case 'timeline':
+                    renderTimelineView(filter);
+                    break;
+                case 'network':
+                    renderNetworkView(filter);
+                    break;
+                default:
+                    renderGridView(filter);
+            }
+        }
+        
+        function getFilteredCustomers(filter) {
+            if (!customers || customers.length === 0) return [];
+            if (filter === 'all') return customers;
+            if (filter === '중장') return customers.filter(function(c) { return c.rank === '중장'; });
+            if (filter === '핵심고객') return customers.filter(function(c) { return c.isKeyCustomer; });
+            
+            // ADD와 국과연은 같은 것으로 처리
+            if (filter === 'ADD') {
+                return customers.filter(function(c) { 
+                    return c.service === 'ADD' || 
+                           c.service === '국과연' || 
+                           c.service === 'ADD(국과연)' ||
+                           c.organization === 'ADD' || 
+                           c.organization === '국과연' ||
+                           c.organization === 'ADD(국과연)';
+                });
+            }
+            
+            // 특정 조직 필터 (service 또는 organization 필드에서 찾기)
+            return customers.filter(function(c) { 
+                return c.service === filter || c.organization === filter; 
+            });
+        }
+        
+        function getServiceColor(service) {
+            // 군
+            if (service === '육군') return '#2a5298';
+            if (service === '해군') return '#1e88e5';
+            if (service === '공군') return '#43a047';
+            if (service === '해병대') return '#00897b';
+            // 연구기관 - ADD/국과연 동일 처리
+            if (service === 'ADD' || service === '국과연' || service === 'ADD(국과연)') return '#ff6f00';
+            if (service === '국기연') return '#f57c00';
+            if (service === '기품원') return '#ef6c00';
+            if (service === 'IITP') return '#e65100';
+            if (service === 'ETRI') return '#ff8a65';
+            // 공공기관
+            if (service === '공무원') return '#9c27b0';
+            if (service === '방사청') return '#7b1fa2';
+            if (service === '국방부') return '#6a1b9a';
+            // 기타
+            return '#78909c';
+        }
+        
+        function createCustomerCard(customer) {
+            var serviceClass = customer.service ? 'service-' + customer.service : '';
+            var html = '<div class="viz-card ' + serviceClass + '" onclick="editCustomer(' + customer.id + ')">';
+            
+            if (customer.rank) {
+                html += '<div class="viz-card-rank">' + customer.rank + '</div>';
+            }
+            
+            html += '<div class="viz-card-name">' + customer.name;
+            if (customer.age) {
+                html += ' (' + customer.age + '세)';
+            }
+            html += '</div>';
+            
+            html += '<div class="viz-card-info">';
+            
+            if (customer.service) {
+                html += '<span class="viz-card-badge" style="background: ' + getServiceColor(customer.service) + '; color: white;">' + customer.service + '</span>';
+            }
+            
+            if (customer.organization) {
+                html += '<span class="viz-card-badge">' + customer.organization + '</span>';
+            }
+            
+            if (customer.militaryType && customer.classNumber) {
+                html += '<span class="viz-card-badge">' + customer.militaryType + ' ' + customer.classNumber + '기</span>';
+            }
+            
+            if (customer.position) {
+                html += '<div style="margin-top: 8px; font-size: 12px; color: #5a6c7d;">' + customer.position + '</div>';
+            }
+            
+            if (customer.isKeyCustomer) {
+                html += '<span class="viz-card-badge" style="background: #e53e3e; color: white; margin-top: 5px;">⭐ 핵심</span>';
+            }
+            
+            html += '</div></div>';
+            return html;
+        }
+        
+        // 1. 그리드 보기
+        function renderGridView(filter) {
+            var container = document.getElementById('network-graph');
+            var filteredCustomers = getFilteredCustomers(filter);
+            
+            if (filteredCustomers.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3><p>필터를 변경하거나 새 고객을 추가해주세요</p></div>';
+                return;
+            }
+            
+            var html = '<div class="viz-grid">';
+            filteredCustomers.forEach(function(customer) {
+                html += createCustomerCard(customer);
+            });
+            html += '</div>';
+            
+            container.innerHTML = html;
+        }
+        
+        // 2. 군종별 그룹
+        function renderServiceGroupView(filter) {
+            var container = document.getElementById('network-graph');
+            var filteredCustomers = getFilteredCustomers(filter);
+            
+            if (filteredCustomers.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+                return;
+            }
+            
+            var services = ['육군', '해군', '공군', '해병대', 'ADD', '국기연', '기품원', 'IITP', '공무원', '방사청', '기타'];
+            var html = '';
+            
+            services.forEach(function(service) {
+                var serviceCustomers = filteredCustomers.filter(function(c) { 
+                    if (service === '기타') {
+                        return !c.service || !services.slice(0, -1).includes(c.service);
+                    }
+                    // ADD와 국과연은 같은 그룹으로 처리
+                    if (service === 'ADD') {
+                        return c.service === 'ADD' || c.service === '국과연' || c.service === 'ADD(국과연)';
+                    }
+                    return c.service === service; 
+                });
+                
+                if (serviceCustomers.length > 0) {
+                    var bgColor = getServiceColor(service);
+                    var displayName = service === 'ADD' ? 'ADD(국과연)' : service;
+                    html += '<div class="viz-group">';
+                    html += '<div class="viz-group-header" style="background: ' + bgColor + ';">';
+                    html += '<div class="viz-group-title">' + displayName + '</div>';
+                    html += '<div class="viz-group-count">' + serviceCustomers.length + '명</div>';
+                    html += '</div>';
+                    html += '<div class="viz-grid">';
+                    serviceCustomers.forEach(function(customer) {
+                        html += createCustomerCard(customer);
+                    });
+                    html += '</div></div>';
+                }
+            });
+            
+            if (html === '') {
+                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+            } else {
+                container.innerHTML = html;
+            }
+        }
+        
+        // 2-1. 조직별 그룹 (군/연구기관/공무원)
+        function renderOrgGroupView(filter) {
+            var container = document.getElementById('network-graph');
+            var filteredCustomers = getFilteredCustomers(filter);
+            
+            if (filteredCustomers.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+                return;
+            }
+            
+            // 조직 카테고리 정의
+            var orgCategories = {
+                '군': {
+                    color: '#1976d2',
+                    services: ['육군', '해군', '공군', '해병대']
+                },
+                '정부출연 연구기관': {
+                    color: '#f57c00',
+                    services: ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'IITP', 'ETRI', 'KARI', '기타연구기관']
+                },
+                '공공기관': {
+                    color: '#7b1fa2',
+                    services: ['공무원', '방사청', '국방부', '방위사업청']
+                },
+                '민간/기업': {
+                    color: '#00796b',
+                    services: ['기업', '민간', '컨설팅']
+                }
+            };
+            
+            var html = '';
+            
+            Object.keys(orgCategories).forEach(function(category) {
+                var categoryData = orgCategories[category];
+                var categoryCustomers = filteredCustomers.filter(function(c) {
+                    return categoryData.services.includes(c.service) || 
+                           categoryData.services.includes(c.organization);
+                });
+                
+                if (categoryCustomers.length > 0) {
+                    html += '<div class="viz-group">';
+                    html += '<div class="viz-group-header" style="background: ' + categoryData.color + ';">';
+                    html += '<div class="viz-group-title">📁 ' + category + '</div>';
+                    html += '<div class="viz-group-count">' + categoryCustomers.length + '명</div>';
+                    html += '</div>';
+                    
+                    // 카테고리 내에서 다시 세부 조직별로 그룹화
+                    var subGroups = {};
+                    categoryCustomers.forEach(function(c) {
+                        var subGroup = c.service || c.organization || '미분류';
+                        // ADD와 국과연을 통합
+                        if (subGroup === '국과연' || subGroup === 'ADD') {
+                            subGroup = 'ADD(국과연)';
+                        }
+                        if (!subGroups[subGroup]) subGroups[subGroup] = [];
+                        subGroups[subGroup].push(c);
+                    });
+                    
+                    Object.keys(subGroups).forEach(function(subGroup) {
+                        if (subGroups[subGroup].length > 0) {
+                            html += '<div style="margin: 15px 0;">';
+                            html += '<div style="padding: 10px 20px; background: rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 10px;">';
+                            html += '<span style="font-weight: 600; font-size: 16px;">' + subGroup + '</span>';
+                            html += '<span style="margin-left: 10px; opacity: 0.8;">(' + subGroups[subGroup].length + '명)</span>';
+                            html += '</div>';
+                            html += '<div class="viz-grid">';
+                            subGroups[subGroup].forEach(function(customer) {
+                                html += createCustomerCard(customer);
+                            });
+                            html += '</div></div>';
+                        }
+                    });
+                    
+                    html += '</div>';
+                }
+            });
+            
+            // 미분류 항목
+            var uncategorized = filteredCustomers.filter(function(c) {
+                var allServices = [];
+                Object.keys(orgCategories).forEach(function(cat) {
+                    allServices = allServices.concat(orgCategories[cat].services);
+                });
+                return !allServices.includes(c.service) && !allServices.includes(c.organization);
+            });
+            
+            if (uncategorized.length > 0) {
+                html += '<div class="viz-group">';
+                html += '<div class="viz-group-header" style="background: #78909c;">';
+                html += '<div class="viz-group-title">📋 미분류</div>';
+                html += '<div class="viz-group-count">' + uncategorized.length + '명</div>';
+                html += '</div>';
+                html += '<div class="viz-grid">';
+                uncategorized.forEach(function(customer) {
+                    html += createCustomerCard(customer);
+                });
+                html += '</div></div>';
+            }
+            
+            if (html === '') {
+                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+            } else {
+                container.innerHTML = html;
+            }
+        }
+        
+        // 3. 계급별 목록
+        function renderRankListView(filter) {
+            var container = document.getElementById('network-graph');
+            var filteredCustomers = getFilteredCustomers(filter);
+            
+            if (filteredCustomers.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+                return;
+            }
+            
+            var ranks = ['대장', '중장', '소장', '준장', '대령', '중령', '소령', '국장', '본부장', '센터장', '수석', '책임'];
+            var html = '';
+            
+            ranks.forEach(function(rank) {
+                var rankCustomers = filteredCustomers.filter(function(c) { return c.rank === rank; });
+                if (rankCustomers.length > 0) {
+                    html += '<div class="viz-group">';
+                    html += '<div class="viz-group-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">';
+                    html += '<div class="viz-group-title">' + rank + '</div>';
+                    html += '<div class="viz-group-count">' + rankCustomers.length + '명</div>';
+                    html += '</div>';
+                    html += '<div class="viz-grid">';
+                    rankCustomers.forEach(function(customer) {
+                        html += createCustomerCard(customer);
+                    });
+                    html += '</div></div>';
+                }
+            });
+            
+            if (html === '') {
+                container.innerHTML = '<div class="empty-state"><h3>계급 정보가 있는 고객이 없습니다</h3><p>고객 정보에 계급을 입력해주세요</p></div>';
+            } else {
+                container.innerHTML = html;
+            }
+        }
+        
+        // 4. 기수별 타임라인
+        function renderTimelineView(filter) {
+            var container = document.getElementById('network-graph');
+            var filteredCustomers = getFilteredCustomers(filter)
+                .filter(function(c) { return c.classNumber && c.militaryType; });
+            
+            if (filteredCustomers.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>기수 정보가 있는 고객이 없습니다</h3><p>고객 정보에 출신과 기수를 입력해주세요</p></div>';
+                return;
+            }
+            
+            // 기수별로 정렬
+            var sortedCustomers = filteredCustomers.sort(function(a, b) {
+                var classA = parseInt(a.classNumber) || 0;
+                var classB = parseInt(b.classNumber) || 0;
+                return classA - classB;
+            });
+            
+            var html = '<div class="viz-timeline">';
+            html += '<div class="viz-timeline-line"></div>';
+            html += '<div class="viz-timeline-items">';
+            
+            sortedCustomers.forEach(function(customer) {
+                html += '<div class="viz-timeline-item">';
+                html += '<div class="viz-timeline-marker" style="background: ' + getServiceColor(customer.service) + '; box-shadow: 0 0 0 2px ' + getServiceColor(customer.service) + ';"></div>';
+                html += createCustomerCard(customer);
+                html += '</div>';
+            });
+            
+            html += '</div></div>';
+            container.innerHTML = html;
+        }
+        
+        // 인맥 네트워크 뷰
+        function renderNetworkView(filter) {
+            var container = document.getElementById('network-graph');
+            var filteredCustomers = getFilteredCustomers(filter);
+            
+            if (filteredCustomers.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+                return;
+            }
+            
+            // 인맥 그룹 분석
+            var networks = analyzeNetworks(filteredCustomers);
+            
+            if (networks.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>🔗 인맥 네트워크 분석</h3><p style="margin-top: 15px;">공통점을 가진 고객 그룹이 발견되지 않았습니다.</p><p style="margin-top: 10px; font-size: 13px; color: #718096;">출신학교, 전공, 기수 정보를 입력하면<br>인맥 네트워크를 파악할 수 있습니다.</p></div>';
+                return;
+            }
+            
+            var html = '<div style="padding: 20px 0;">';
+            html += '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 30px;">';
+            html += '<h2 style="margin: 0 0 10px 0; font-size: 24px;">🔗 인맥 네트워크 분석</h2>';
+            html += '<p style="margin: 0; opacity: 0.9; font-size: 14px;">' + networks.length + '개의 인맥 그룹을 발견했습니다</p>';
+            html += '</div>';
+            
+            networks.forEach(function(network, index) {
+                html += '<div class="viz-group" style="margin-bottom: 30px;">';
+                
+                // 그룹 헤더
+                var headerColor = getNetworkColor(network.type);
+                html += '<div class="viz-group-header" style="background: ' + headerColor + '; cursor: pointer;" onclick="toggleNetworkDetail(' + index + ')">';
+                html += '<div>';
+                html += '<div class="viz-group-title" style="font-size: 20px;">';
+                html += getNetworkIcon(network.type) + ' ' + network.title;
+                html += '</div>';
+                html += '<div style="font-size: 13px; opacity: 0.9; margin-top: 5px;">' + network.description + '</div>';
+                html += '</div>';
+                html += '<div style="display: flex; align-items: center; gap: 15px;">';
+                html += '<div class="viz-group-count" style="font-size: 18px; font-weight: 700;">' + network.members.length + '명</div>';
+                html += '<span id="network-toggle-' + index + '" style="font-size: 20px;">▼</span>';
+                html += '</div>';
+                html += '</div>';
+                
+                // 그룹 멤버
+                html += '<div id="network-detail-' + index + '" class="viz-grid" style="margin-top: 15px;">';
+                network.members.forEach(function(customer) {
+                    html += createCustomerCard(customer);
+                });
+                html += '</div>';
+                
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // 네트워크 분석
+        function analyzeNetworks(customers) {
+            var networks = [];
+            
+            // 1. 같은 학교 + 같은 전공
+            var schoolMajorGroups = {};
+            customers.forEach(function(c) {
+                if (c.school && c.major) {
+                    var key = c.school + '|' + c.major;
+                    if (!schoolMajorGroups[key]) {
+                        schoolMajorGroups[key] = [];
+                    }
+                    schoolMajorGroups[key].push(c);
+                }
+            });
+            
+            Object.keys(schoolMajorGroups).forEach(function(key) {
+                var group = schoolMajorGroups[key];
+                if (group.length >= 2) {
+                    var parts = key.split('|');
+                    networks.push({
+                        type: 'school-major',
+                        title: parts[0] + ' ' + parts[1] + ' 동문',
+                        description: '같은 학교, 같은 전공 출신',
+                        members: group,
+                        strength: group.length * 3 // 가장 강한 인맥
+                    });
+                }
+            });
+            
+            // 2. 같은 학교 (전공 다름)
+            var schoolGroups = {};
+            customers.forEach(function(c) {
+                if (c.school) {
+                    if (!schoolGroups[c.school]) {
+                        schoolGroups[c.school] = [];
+                    }
+                    schoolGroups[c.school].push(c);
+                }
+            });
+            
+            Object.keys(schoolGroups).forEach(function(school) {
+                var group = schoolGroups[school];
+                if (group.length >= 3) {
+                    // 이미 학교+전공 그룹에 포함된 사람들 제외
+                    var alreadyGrouped = networks.filter(function(n) {
+                        return n.type === 'school-major' && n.title.includes(school);
+                    }).reduce(function(acc, n) {
+                        return acc.concat(n.members.map(function(m) { return m.id; }));
+                    }, []);
+                    
+                    var remainingMembers = group.filter(function(m) {
+                        return !alreadyGrouped.includes(m.id);
+                    });
+                    
+                    if (remainingMembers.length >= 2) {
+                        networks.push({
+                            type: 'school',
+                            title: school + ' 동문',
+                            description: '같은 학교 출신 (전공 다양)',
+                            members: group,
+                            strength: group.length * 2
+                        });
+                    }
+                }
+            });
+            
+            // 3. 같은 출신 + 같은 기수 (육사 50기 등)
+            var militaryClassGroups = {};
+            customers.forEach(function(c) {
+                if (c.militaryType && c.classNumber && ['육사', '해사', '공사'].includes(c.militaryType)) {
+                    var key = c.militaryType + '|' + c.classNumber;
+                    if (!militaryClassGroups[key]) {
+                        militaryClassGroups[key] = [];
+                    }
+                    militaryClassGroups[key].push(c);
+                }
+            });
+            
+            Object.keys(militaryClassGroups).forEach(function(key) {
+                var group = militaryClassGroups[key];
+                if (group.length >= 2) {
+                    var parts = key.split('|');
+                    networks.push({
+                        type: 'military-class',
+                        title: parts[0] + ' ' + parts[1] + '기 동기',
+                        description: '사관학교 동기',
+                        members: group,
+                        strength: group.length * 3 // 사관학교 동기는 강한 인맥
+                    });
+                }
+            });
+            
+            // 4. 같은 전공 (학교 다름)
+            var majorGroups = {};
+            customers.forEach(function(c) {
+                if (c.major) {
+                    if (!majorGroups[c.major]) {
+                        majorGroups[c.major] = [];
+                    }
+                    majorGroups[c.major].push(c);
+                }
+            });
+            
+            Object.keys(majorGroups).forEach(function(major) {
+                var group = majorGroups[major];
+                if (group.length >= 3) {
+                    networks.push({
+                        type: 'major',
+                        title: major + ' 전공자',
+                        description: '같은 전공 분야 (학교 다양)',
+                        members: group,
+                        strength: group.length
+                    });
+                }
+            });
+            
+            // 5. 같은 조직
+            var orgGroups = {};
+            customers.forEach(function(c) {
+                if (c.organization && c.organization.length > 2) {
+                    if (!orgGroups[c.organization]) {
+                        orgGroups[c.organization] = [];
+                    }
+                    orgGroups[c.organization].push(c);
+                }
+            });
+            
+            Object.keys(orgGroups).forEach(function(org) {
+                var group = orgGroups[org];
+                if (group.length >= 2) {
+                    networks.push({
+                        type: 'organization',
+                        title: org + ' 소속',
+                        description: '같은 기관 근무',
+                        members: group,
+                        strength: group.length * 1.5
+                    });
+                }
+            });
+            
+            // 강도순으로 정렬
+            networks.sort(function(a, b) {
+                return b.strength - a.strength;
+            });
+            
+            return networks;
+        }
+        
+        // 네트워크 타입별 색상
+        function getNetworkColor(type) {
+            switch(type) {
+                case 'school-major':
+                    return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+                case 'school':
+                    return 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+                case 'military-class':
+                    return 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
+                case 'major':
+                    return 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
+                case 'organization':
+                    return 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
+                default:
+                    return 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)';
+            }
+        }
+        
+        // 네트워크 타입별 아이콘
+        function getNetworkIcon(type) {
+            switch(type) {
+                case 'school-major':
+                    return '🎓';
+                case 'school':
+                    return '🏫';
+                case 'military-class':
+                    return '🎖️';
+                case 'major':
+                    return '📚';
+                case 'organization':
+                    return '🏢';
+                default:
+                    return '🔗';
+            }
+        }
+        
+        // 네트워크 상세 토글
+        function toggleNetworkDetail(index) {
+            var detail = document.getElementById('network-detail-' + index);
+            var toggle = document.getElementById('network-toggle-' + index);
+            
+            if (detail.style.display === 'none') {
+                detail.style.display = 'grid';
+                toggle.textContent = '▼';
+            } else {
+                detail.style.display = 'none';
+                toggle.textContent = '▶';
+            }
+        }
+
+        // To-Do 관련 함수들
+        function renderTodoList() {
+            generateAutoSuggestions();
+            updateTodoSummary();
+            
+            var today = new Date();
+            today.setHours(0, 0, 0, 0);
+            var weekEnd = new Date(today);
+            weekEnd.setDate(weekEnd.getDate() + 7);
+            
+            var urgentTodos = todos.filter(function(t) {
+                return !t.completed && t.priority === 'urgent';
+            });
+            
+            var weekTodos = todos.filter(function(t) {
+                if (t.completed || t.priority === 'urgent') return false;
+                if (!t.deadline) return false;
+                var deadline = new Date(t.deadline);
+                return deadline >= today && deadline <= weekEnd;
+            });
+            
+            var normalTodos = todos.filter(function(t) {
+                if (t.completed || t.priority === 'urgent') return false;
+                if (t.deadline) {
+                    var deadline = new Date(t.deadline);
+                    if (deadline >= today && deadline <= weekEnd) return false;
+                }
+                return true;
+            });
+            
+            var completedTodos = todos.filter(function(t) {
+                return t.completed;
+            });
+            
+            renderTodoCategory('urgent-list', urgentTodos);
+            renderTodoCategory('week-list', weekTodos);
+            renderTodoCategory('normal-list', normalTodos);
+            renderTodoCategory('completed-list', completedTodos);
+        }
+        
+        function renderTodoCategory(containerId, todoList) {
+            var container = document.getElementById(containerId);
+            
+            if (todoList.length === 0) {
+                container.innerHTML = '<div class="empty-todo">할 일이 없습니다</div>';
+                return;
+            }
+            
+            container.innerHTML = todoList.map(function(todo) {
+                var customer = todo.customerId ? customers.find(function(c) { return c.id === todo.customerId; }) : null;
+                var customerName = customer ? customer.name : '';
+                var deadlineText = todo.deadline ? new Date(todo.deadline).toLocaleDateString('ko-KR') : '';
+                
+                return '<div class="todo-item ' + (todo.completed ? 'completed' : '') + '" data-todo-id="' + todo.id + '">' +
+                    '<input type="checkbox" class="todo-checkbox" ' + (todo.completed ? 'checked' : '') + ' data-todo-id="' + todo.id + '">' +
+                    '<div class="todo-content">' +
+                        '<div class="todo-text">' + todo.task + '</div>' +
+                        '<div class="todo-meta">' +
+                            (customerName ? '<span class="todo-badge">👤 ' + customerName + '</span>' : '') +
+                            (deadlineText ? '<span class="todo-badge">📅 ' + deadlineText + '</span>' : '') +
+                            (todo.isAuto ? '<span class="todo-badge auto">자동 제안</span>' : '') +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="todo-actions">' +
+                        '<button class="todo-action-btn edit-todo-btn" data-todo-id="' + todo.id + '" title="수정">✏️</button>' +
+                        '<button class="todo-action-btn delete delete-todo-btn" data-todo-id="' + todo.id + '" title="삭제">🗑️</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+        
+        function generateAutoSuggestions() {
+            var suggestions = [];
+            var today = new Date();
+            
+            // 핵심 고객 중 신규 부임자 파악 (3개월 이내)
+            customers.forEach(function(customer) {
+                if (customer.isKeyCustomer && customer.promotionDate) {
+                    var appointmentDate = new Date(customer.promotionDate);
+                    var monthsDiff = (today - appointmentDate) / (1000 * 60 * 60 * 24 * 30);
+                    
+                    if (monthsDiff >= 0 && monthsDiff <= 3) {
+                        var weeks = Math.floor(monthsDiff * 4);
+                        suggestions.push({
+                            task: (customer.position || customer.name) + ' 신규 부임 인사 방문 필요',
+                            customerId: customer.id,
+                            priority: 'urgent',
+                            reason: '부임 ' + weeks + '주차',
+                            type: 'new-appointment'
+                        });
+                    }
+                }
+            });
+            
+            // 연락처 미확보 핵심 고객
+            customers.forEach(function(customer) {
+                if (customer.isKeyCustomer && !customer.phone) {
+                    suggestions.push({
+                        task: customer.name + ' 연락처 확보 필요',
+                        customerId: customer.id,
+                        priority: 'high',
+                        reason: '연락처 없음',
+                        type: 'no-contact'
+                    });
+                }
+            });
+            
+            var container = document.getElementById('suggestions-list');
+            if (suggestions.length === 0) {
+                container.innerHTML = '<div class="empty-todo">모든 항목이 양호합니다 👍</div>';
+                return;
+            }
+            
+            container.innerHTML = suggestions.map(function(sug, index) {
+                var priorityBadge = sug.priority === 'urgent' ? 'urgent' : '';
+                return '<div class="todo-item">' +
+                    '<div class="todo-content" style="flex: 1;">' +
+                        '<div class="todo-text">' + sug.task + '</div>' +
+                        '<div class="todo-meta">' +
+                            '<span class="todo-badge ' + priorityBadge + '">💡 ' + sug.reason + '</span>' +
+                        '</div>' +
+                    '</div>' +
+                    '<button class="btn btn-secondary" onclick=\'acceptSuggestion(' + JSON.stringify(sug).replace(/'/g, "\\'") + ')\'>할 일 추가</button>' +
+                '</div>';
+            }).join('');
+        }
+        
+        function acceptSuggestion(suggestion) {
+            var todo = {
+                id: Date.now(),
+                task: suggestion.task,
+                customerId: suggestion.customerId || null,
+                priority: suggestion.priority,
+                deadline: '',
+                notes: '자동 제안으로 추가됨: ' + suggestion.reason,
+                completed: false,
+                isAuto: true,
+                createdAt: new Date().toISOString()
+            };
+            
+            todos.push(todo);
+            localStorage.setItem('todos', JSON.stringify(todos));
+            renderTodoList();
+            alert('할 일이 추가되었습니다.');
+        }
+        
+        function updateTodoSummary() {
+            var today = new Date();
+            today.setHours(0, 0, 0, 0);
+            var tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            var weekEnd = new Date(today);
+            weekEnd.setDate(weekEnd.getDate() + 7);
+            
+            var todayCount = todos.filter(function(t) {
+                if (t.completed || !t.deadline) return false;
+                var deadline = new Date(t.deadline);
+                return deadline >= today && deadline < tomorrow;
+            }).length;
+            
+            var weekCount = todos.filter(function(t) {
+                if (t.completed || !t.deadline) return false;
+                var deadline = new Date(t.deadline);
+                return deadline >= today && deadline <= weekEnd;
+            }).length;
+            
+            var urgentCount = todos.filter(function(t) {
+                return !t.completed && t.priority === 'urgent';
+            }).length;
+            
+            var completedCount = todos.filter(function(t) {
+                return t.completed;
+            }).length;
+            
+            document.getElementById('todo-today').textContent = todayCount;
+            document.getElementById('todo-week').textContent = weekCount;
+            document.getElementById('todo-urgent').textContent = urgentCount;
+            document.getElementById('todo-completed').textContent = completedCount;
+        }
+        
+        function openAddTodoModal() {
+            currentTodoId = null;
+            document.getElementById('todo-modal-title').textContent = '새 할 일 추가';
+            document.getElementById('todo-form').reset();
+            
+            var customerSelect = document.getElementById('todo-customer');
+            customerSelect.innerHTML = '<option value="">선택 (선택사항)</option>' +
+                customers.map(function(c) {
+                    return '<option value="' + c.id + '">' + (c.rank ? c.rank + ' ' : '') + c.name + 
+                           (c.position ? ' (' + c.position + ')' : '') + '</option>';
+                }).join('');
+            
+            document.getElementById('todo-modal').classList.add('active');
+        }
+        
+        function closeTodoModal() {
+            document.getElementById('todo-modal').classList.remove('active');
+            currentTodoId = null;
+        }
+        
+        function editTodo(todoId) {
+            currentTodoId = todoId;
+            var todo = todos.find(function(t) { return t.id === todoId; });
+            
+            if (!todo) {
+                console.error('Todo not found:', todoId);
+                alert('할 일을 찾을 수 없습니다.');
+                return;
+            }
+            
+            document.getElementById('todo-modal-title').textContent = '할 일 수정';
+            document.getElementById('todo-id').value = todo.id;
+            document.getElementById('todo-task').value = todo.task;
+            document.getElementById('todo-deadline').value = todo.deadline || '';
+            document.getElementById('todo-priority').value = todo.priority;
+            document.getElementById('todo-notes').value = todo.notes || '';
+            
+            var customerSelect = document.getElementById('todo-customer');
+            customerSelect.innerHTML = '<option value="">선택 (선택사항)</option>' +
+                customers.map(function(c) {
+                    return '<option value="' + c.id + '"' + (c.id === todo.customerId ? ' selected' : '') + '>' + 
+                           (c.rank ? c.rank + ' ' : '') + c.name + 
+                           (c.position ? ' (' + c.position + ')' : '') + '</option>';
+                }).join('');
+            
+            document.getElementById('todo-modal').classList.add('active');
+        }
+        
+        function toggleTodo(todoId) {
+            var index = todos.findIndex(function(t) { return t.id === todoId; });
+            if (index === -1) {
+                console.error('Todo not found:', todoId);
+                return;
+            }
+            
+            todos[index].completed = !todos[index].completed;
+            
+            if (todos[index].completed) {
+                todos[index].completedAt = new Date().toISOString();
+            } else {
+                delete todos[index].completedAt;
+            }
+            
+            localStorage.setItem('todos', JSON.stringify(todos));
+            
+            // iCloud 자동 동기화 트리거
+            // triggerAutoSync(); // iCloud 기능 비활성화
+            
+            renderTodoList();
+            updateTodoBadge();
+        }
+        
+        function deleteTodo(todoId) {
+            // 완료된 항목인지 확인
+            var todo = todos.find(function(t) { return t.id === todoId; });
+            
+            if (!todo) {
+                console.error('Todo not found:', todoId);
+                alert('할 일을 찾을 수 없습니다.');
+                return;
+            }
+            
+            // 완료된 항목은 확인 없이 삭제, 미완료 항목은 확인 후 삭제
+            if (!todo.completed && !confirm('이 할 일을 삭제하시겠습니까?')) {
+                return;
+            }
+            
+            todos = todos.filter(function(t) { return t.id !== todoId; });
+            
+            localStorage.setItem('todos', JSON.stringify(todos));
+            
+            // iCloud 자동 동기화 트리거
+            // triggerAutoSync(); // iCloud 기능 비활성화
+            
+            renderTodoList();
+            updateTodoBadge();
+            
+            if (todo.completed) {
+                // 완료된 항목은 조용히 삭제
+            } else {
+                alert('할 일이 삭제되었습니다.');
+            }
+        }
+        
+        document.getElementById('todo-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            var todoData = {
+                task: document.getElementById('todo-task').value,
+                customerId: document.getElementById('todo-customer').value ? 
+                           parseInt(document.getElementById('todo-customer').value) : null,
+                deadline: document.getElementById('todo-deadline').value,
+                priority: document.getElementById('todo-priority').value,
+                notes: document.getElementById('todo-notes').value,
+                completed: false
+            };
+            
+            if (currentTodoId) {
+                var index = todos.findIndex(function(t) { return t.id === currentTodoId; });
+                todos[index] = {
+                    ...todos[index],
+                    ...todoData
+                };
+            } else {
+                todoData.id = Date.now();
+                todoData.createdAt = new Date().toISOString();
+                todos.push(todoData);
+            }
+            
+            localStorage.setItem('todos', JSON.stringify(todos));
+            
+            // iCloud 자동 동기화 트리거
+            // triggerAutoSync(); // iCloud 기능 비활성화
+            
+            closeTodoModal();
+            renderTodoList();
+            alert(currentTodoId ? '할 일이 수정되었습니다.' : '할 일이 추가되었습니다.');
+        });
+        
+        function checkAndUpdateTodos() {
+            updateTodoSummary();
+            updateTodoBadge();
+            
+            var currentSection = document.querySelector('.content-section.active');
+            if (currentSection && currentSection.id === 'todo-section') {
+                renderTodoList();
+            }
+        }
+        
+        function updateTodoBadge() {
+            var today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            var urgentCount = todos.filter(function(t) {
+                if (t.completed) return false;
+                if (t.priority === 'urgent') return true;
+                if (t.deadline) {
+                    var deadline = new Date(t.deadline);
+                    deadline.setHours(0, 0, 0, 0);
+                    return deadline.getTime() === today.getTime();
+                }
+                return false;
+            }).length;
+            
+            var badge = document.getElementById('todo-badge');
+            if (urgentCount > 0) {
+                badge.textContent = urgentCount;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // 2025년 11월 진급자 데이터 자동 입력
+        function loadPromotionData() {
+            if (!confirm('2025년 11월 중장 진급자 21명의 데이터를 추가하시겠습니까?\n\n이미 등록된 인원은 자동으로 건너뜁니다.')) return;
+            
+            const promotionData = [
+                // 육군
+                { name: "한기성", rank: "중장", service: "육군", militaryType: "학군", classNumber: "33", position: "1군단장", promotionDate: "2025-11-18" },
+                { name: "정유수", rank: "중장", service: "육군", militaryType: "육사", classNumber: "51", position: "2군단장", promotionDate: "2025-11-18" },
+                { name: "이상렬", rank: "중장", service: "육군", militaryType: "학군", classNumber: "31", position: "3군단장", promotionDate: "2025-11-18" },
+                { name: "이일용", rank: "중장", service: "육군", militaryType: "육사", classNumber: "51", position: "5군단장", promotionDate: "2025-11-18" },
+                { name: "최성진", rank: "중장", service: "육군", militaryType: "육사", classNumber: "49", position: "7군단장", promotionDate: "2025-11-18" },
+                { name: "이임수", rank: "중장", service: "육군", militaryType: "육사", classNumber: "50", position: "수도군단장", promotionDate: "2025-11-18" },
+                { name: "박성제", rank: "중장", service: "육군", militaryType: "학사", classNumber: "17", position: "특수전사령관", promotionDate: "2025-11-18" },
+                { name: "어창준", rank: "중장", service: "육군", militaryType: "육사", classNumber: "49", position: "수도방위사령관", promotionDate: "2025-11-18" },
+                { name: "권혁동", rank: "중장", service: "육군", militaryType: "육사", classNumber: "50", position: "미사일전략사령관", promotionDate: "2025-11-18" },
+                { name: "강현우", rank: "중장", service: "육군", militaryType: "육사", classNumber: "50", position: "합참 작전본부장", promotionDate: "2025-11-18" },
+                { name: "김종묵", rank: "중장", service: "육군", militaryType: "학군", classNumber: "32", position: "지작사 참모장", promotionDate: "2025-11-18" },
+                { name: "강관범", rank: "중장", service: "육군", militaryType: "육사", classNumber: "49", position: "육군교육사령관", promotionDate: "2025-11-18" },
+                { name: "박춘식", rank: "중장", service: "육군", militaryType: "육사", classNumber: "49", position: "육군군수사령관", promotionDate: "2025-11-18" },
+                { name: "최장식", rank: "중장", service: "육군", militaryType: "학군", classNumber: "30", position: "육군참모차장", promotionDate: "2025-11-18" },
+                
+                // 해군
+                { name: "김경률", rank: "중장", service: "해군", militaryType: "해사", classNumber: "47", position: "해군 작전사령관", promotionDate: "2025-11-18" },
+                { name: "박규백", rank: "중장", service: "해군", militaryType: "해사", classNumber: "47", position: "해사교장", promotionDate: "2025-11-18" },
+                { name: "곽광섭", rank: "중장", service: "해군", militaryType: "해사", classNumber: "48", position: "해군참모차장", promotionDate: "2025-11-18" },
+                { name: "강동구", rank: "중장", service: "해군", militaryType: "해사", classNumber: "48", position: "합참 전략기획본부장", promotionDate: "2025-11-18" },
+                
+                // 공군
+                { name: "권영민", rank: "중장", service: "공군", militaryType: "공사", classNumber: "42", position: "공군교육사령관", promotionDate: "2025-11-18" },
+                { name: "김준호", rank: "중장", service: "공군", militaryType: "공사", classNumber: "41", position: "국방정보본부장", promotionDate: "2025-11-18" },
+                { name: "구상모", rank: "중장", service: "공군", militaryType: "공사", classNumber: "43", position: "합참 군수지원본부장", promotionDate: "2025-11-18" }
+            ];
+            
+            let addedCount = 0;
+            let skippedCount = 0;
+            
+            promotionData.forEach(function(person) {
+                // 중복 체크 (이름과 기수로)
+                const exists = customers.find(function(c) {
+                    return c.name === person.name && c.classNumber === person.classNumber;
+                });
+                
+                if (!exists) {
+                    const customer = {
+                        id: Date.now() + Math.random(), // 고유 ID 생성
+                        name: person.name,
+                        rank: person.rank,
+                        service: person.service,
+                        militaryType: person.militaryType,
+                        classNumber: person.classNumber,
+                        position: person.position,
+                        promotionDate: person.promotionDate,
+                        phone: "",
+                        school: "",
+                        organization: "",
+                        department: "",
+                        workAddress: "",
+                        homeAddress: "",
+                        family: "",
+                        relations: "",
+                        notes: "2025년 11월 18일 중장 진급",
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    customers.push(customer);
+                    addedCount++;
+                } else {
+                    skippedCount++;
+                }
+            });
+            
+            localStorage.setItem('customers', JSON.stringify(customers));
+            renderCustomerList();
+            checkAndUpdateTodos();
+            
+            alert('✅ 진급자 데이터 처리 완료!\n\n' +
+                  '추가: ' + addedCount + '명\n' +
+                  '건너뜀(중복): ' + skippedCount + '명\n\n' +
+                  '총 고객: ' + customers.length + '명');
+        }
+
+        // iCloud 동기화 시스템
+        let iCloudEnabled = false;
+        let iCloudDirectoryHandle = null;
+        let iCloudFileHandle = null;
+        let autoSyncEnabled = true;
+        let syncTimeout = null;
+        let lastSyncTime = null;
+        
+        // iCloud 동기화 초기화
+        async function initICloudSync() {
+            // localStorage에서 iCloud 설정 확인
+            const iCloudSettings = localStorage.getItem('iCloudSettings');
+            if (iCloudSettings) {
+                const settings = JSON.parse(iCloudSettings);
+                if (settings.enabled) {
+                    // File System Access API 지원 확인
+                    if ('showDirectoryPicker' in window) {
+                        iCloudEnabled = true;
+                        autoSyncEnabled = settings.autoSync !== false;
+                        document.getElementById('icloud-sync-btn').style.display = 'block';
+                        updateICloudStatus('ready', '동기화 준비됨');
+                        
+                        // 페이지 로드 시 자동으로 iCloud에서 데이터 확인
+                        await checkAndLoadFromICloud();
+                    }
+                }
+            }
+        }
+        
+        // iCloud에서 최신 데이터 확인 및 로드
+        async function checkAndLoadFromICloud() {
+            try {
+                // 이전에 저장된 디렉토리 핸들 확인
+                const handleData = localStorage.getItem('iCloudDirectoryHandle');
+                if (!handleData) return;
+                
+                // 권한 재요청
+                const granted = await requestICloudPermission();
+                if (!granted) return;
+                
+                const fileHandle = await iCloudDirectoryHandle.getFileHandle('defense-crm-data.json');
+                const file = await fileHandle.getFile();
+                const lastModified = file.lastModified;
+                
+                // localStorage의 마지막 동기화 시간과 비교
+                const lastSync = localStorage.getItem('iCloudLastSync');
+                if (!lastSync || lastModified > parseInt(lastSync)) {
+                    // iCloud 파일이 더 최신
+                    const shouldLoad = confirm('☁️ iCloud에서 더 최신 데이터를 발견했습니다.\n\n' +
+                        '파일 수정 시간: ' + new Date(lastModified).toLocaleString('ko-KR') + '\n\n' +
+                        'iCloud 데이터를 불러오시겠습니까?\n\n' +
+                        '※ 현재 기기의 데이터는 덮어쓰여집니다.');
+                    
+                    if (shouldLoad) {
+                        await loadFromICloudFile(file);
+                        showICloudBanner('success', '✅ iCloud에서 최신 데이터를 불러왔습니다');
+                    }
+                }
+            } catch (error) {
+                console.log('iCloud 확인 중 오류:', error);
+            }
+        }
+        
+        // iCloud 권한 재요청
+        async function requestICloudPermission() {
+            try {
+                const handleData = localStorage.getItem('iCloudDirectoryHandle');
+                if (!handleData) return false;
+                
+                // 저장된 핸들을 사용할 수 없으므로 다시 선택 필요
+                return false;
+            } catch (error) {
+                return false;
+            }
+        }
+        
+        // iCloud 모달 열기
+        function openICloudSyncModal() {
+            if (!iCloudEnabled) {
+                document.getElementById('icloud-setup-view').style.display = 'block';
+                document.getElementById('icloud-status-view').style.display = 'none';
+            } else {
+                document.getElementById('icloud-setup-view').style.display = 'none';
+                document.getElementById('icloud-status-view').style.display = 'block';
+                updateSyncStats();
+            }
+            document.getElementById('icloud-sync-modal').classList.add('active');
+        }
+        
+        function closeICloudSyncModal() {
+            document.getElementById('icloud-sync-modal').classList.remove('active');
+        }
+        
+        // iCloud 동기화 설정
+        async function setupICloudSync() {
+            // File System Access API 지원 확인
+            if (!('showDirectoryPicker' in window)) {
+                alert('❌ 죄송합니다.\n\n현재 브라우저에서는 iCloud 동기화를 지원하지 않습니다.\n\niCloud 동기화는 Safari 브라우저에서만 사용 가능합니다.\n\n※ Chrome, Edge에서는 지원되지 않습니다.');
+                return;
+            }
+            
+            try {
+                // 사용자에게 iCloud Drive 폴더 선택 요청
+                iCloudDirectoryHandle = await window.showDirectoryPicker({
+                    mode: 'readwrite',
+                    startIn: 'documents'
+                });
+                
+                // 설정 저장
+                iCloudEnabled = true;
+                autoSyncEnabled = true;
+                
+                localStorage.setItem('iCloudSettings', JSON.stringify({
+                    enabled: true,
+                    autoSync: true,
+                    setupDate: new Date().toISOString()
+                }));
+                
+                // 현재 데이터를 iCloud에 저장
+                await saveToICloud();
+                
+                // UI 업데이트
+                document.getElementById('icloud-sync-btn').style.display = 'block';
+                updateICloudStatus('success', '동기화됨');
+                
+                // 모달 뷰 전환
+                document.getElementById('icloud-setup-view').style.display = 'none';
+                document.getElementById('icloud-status-view').style.display = 'block';
+                updateSyncStats();
+                
+                showICloudBanner('success', '✅ iCloud 동기화가 활성화되었습니다!');
+                
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.log('사용자가 폴더 선택을 취소했습니다.');
+                } else {
+                    console.error('iCloud 설정 오류:', error);
+                    alert('iCloud 설정 중 오류가 발생했습니다.\n\n' + error.message);
+                }
+            }
+        }
+        
+        // iCloud에 저장
+        async function saveToICloud() {
+            if (!iCloudEnabled || !iCloudDirectoryHandle) return;
+            
+            try {
+                updateICloudStatus('syncing', '저장 중...');
+                
+                // 파일 핸들 가져오기 또는 생성
+                const fileHandle = await iCloudDirectoryHandle.getFileHandle('defense-crm-data.json', { create: true });
+                
+                // 데이터 준비
+                const data = {
+                    customers: customers,
+                    keyPositions: keyPositions,
+                    todos: todos,
+                    keyCustomerIds: keyCustomerIds,
+                    lastModified: new Date().toISOString(),
+                    version: '5.2'
+                };
+                
+                // 파일 쓰기
+                const writable = await fileHandle.createWritable();
+                await writable.write(JSON.stringify(data, null, 2));
+                await writable.close();
+                
+                // 마지막 동기화 시간 저장
+                lastSyncTime = new Date();
+                localStorage.setItem('iCloudLastSync', Date.now().toString());
+                
+                updateICloudStatus('success', '동기화됨');
+                updateSyncStats();
+                
+                console.log('✅ iCloud 저장 완료');
+                
+            } catch (error) {
+                console.error('iCloud 저장 오류:', error);
+                updateICloudStatus('error', '저장 실패');
+                
+                // 권한 문제인 경우
+                if (error.name === 'NotAllowedError') {
+                    alert('⚠️ iCloud 저장 권한이 필요합니다.\n\n다시 설정해주세요.');
+                    disableICloudSync();
+                }
+            }
+        }
+        
+        // iCloud에서 로드
+        async function loadFromICloud() {
+            if (!iCloudEnabled || !iCloudDirectoryHandle) return;
+            
+            try {
+                updateICloudStatus('syncing', '불러오는 중...');
+                
+                const fileHandle = await iCloudDirectoryHandle.getFileHandle('defense-crm-data.json');
+                const file = await fileHandle.getFile();
+                
+                await loadFromICloudFile(file);
+                
+            } catch (error) {
+                console.error('iCloud 로드 오류:', error);
+                updateICloudStatus('error', '로드 실패');
+                
+                if (error.name === 'NotFoundError') {
+                    alert('iCloud에 저장된 데이터가 없습니다.\n\n먼저 데이터를 저장해주세요.');
+                    updateICloudStatus('ready', '동기화 준비됨');
+                }
+            }
+        }
+        
+        // iCloud 파일에서 데이터 로드
+        async function loadFromICloudFile(file) {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            // 데이터 복원
+            if (data.customers) customers = data.customers;
+            if (data.keyPositions) keyPositions = data.keyPositions;
+            if (data.todos) todos = data.todos;
+            if (data.keyCustomerIds) keyCustomerIds = data.keyCustomerIds;
+            
+            // localStorage에도 저장
+            localStorage.setItem('customers', JSON.stringify(customers));
+            localStorage.setItem('keyPositions', JSON.stringify(keyPositions));
+            localStorage.setItem('todos', JSON.stringify(todos));
+            localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
+            localStorage.setItem('iCloudLastSync', Date.now().toString());
+            
+            // 화면 새로고침
+            renderCustomerList();
+            renderKeyCustomers();
+            renderTodoList();
+            
+            lastSyncTime = new Date();
+            updateICloudStatus('success', '동기화됨');
+            updateSyncStats();
+            
+            console.log('✅ iCloud 데이터 로드 완료');
+        }
+        
+        // 수동 동기화 - iCloud에 저장
+        async function manualSyncToICloud() {
+            if (!iCloudDirectoryHandle) {
+                // 폴더 다시 선택
+                await setupICloudSync();
+                return;
+            }
+            
+            await saveToICloud();
+            showICloudBanner('success', '✅ iCloud에 저장되었습니다');
+        }
+        
+        // 수동 동기화 - iCloud에서 가져오기
+        async function manualSyncFromICloud() {
+            if (!iCloudDirectoryHandle) {
+                alert('먼저 iCloud 동기화를 설정해주세요.');
+                return;
+            }
+            
+            if (!confirm('⚠️ iCloud의 데이터로 덮어쓰시겠습니까?\n\n현재 기기의 데이터는 사라집니다.')) {
+                return;
+            }
+            
+            await loadFromICloud();
+            showICloudBanner('success', '✅ iCloud에서 데이터를 가져왔습니다');
+        }
+        
+        // 자동 동기화 토글
+        function toggleAutoSync() {
+            autoSyncEnabled = !autoSyncEnabled;
+            
+            const settings = JSON.parse(localStorage.getItem('iCloudSettings') || '{}');
+            settings.autoSync = autoSyncEnabled;
+            localStorage.setItem('iCloudSettings', JSON.stringify(settings));
+            
+            document.getElementById('auto-sync-toggle-text').textContent = 
+                autoSyncEnabled ? '🔄 자동 동기화: ON' : '⏸️ 자동 동기화: OFF';
+            
+            alert(autoSyncEnabled ? 
+                '✅ 자동 동기화가 활성화되었습니다.\n\n데이터 변경 시 3초 후 자동으로 iCloud에 저장됩니다.' :
+                '⏸️ 자동 동기화가 비활성화되었습니다.\n\n수동으로 저장 버튼을 눌러야 합니다.');
+        }
+        
+        // iCloud 동기화 해제
+        function disableICloudSync() {
+            if (!confirm('⚠️ iCloud 동기화를 해제하시겠습니까?\n\n※ iCloud의 데이터는 삭제되지 않으며,\n이 기기에서만 동기화가 해제됩니다.')) {
+                return;
+            }
+            
+            iCloudEnabled = false;
+            iCloudDirectoryHandle = null;
+            autoSyncEnabled = false;
+            
+            localStorage.removeItem('iCloudSettings');
+            localStorage.removeItem('iCloudDirectoryHandle');
+            localStorage.removeItem('iCloudLastSync');
+            
+            document.getElementById('icloud-sync-btn').style.display = 'none';
+            closeICloudSyncModal();
+            
+            showICloudBanner('info', 'iCloud 동기화가 해제되었습니다');
+        }
+        
+        // 자동 동기화 트리거 (데이터 변경 시 호출)
+        function triggerAutoSync() {
+            if (!iCloudEnabled || !autoSyncEnabled) return;
+            
+            // 기존 타이머 취소
+            if (syncTimeout) {
+                clearTimeout(syncTimeout);
+            }
+            
+            // 3초 후 저장
+            syncTimeout = setTimeout(async function() {
+                await saveToICloud();
+            }, 3000);
+            
+            updateICloudStatus('pending', '저장 대기 중...');
+        }
+        
+        // iCloud 상태 업데이트
+        function updateICloudStatus(status, text) {
+            const icon = document.getElementById('icloud-status-icon');
+            const statusIcon = document.getElementById('sync-status-icon');
+            const statusText = document.getElementById('sync-status-text');
+            const statusDetail = document.getElementById('sync-status-detail');
+            
+            switch(status) {
+                case 'syncing':
+                    if (icon) icon.textContent = '🔄';
+                    if (statusIcon) statusIcon.textContent = '🔄';
+                    if (statusText) statusText.textContent = text;
+                    break;
+                case 'success':
+                    if (icon) icon.textContent = '☁️';
+                    if (statusIcon) statusIcon.textContent = '✅';
+                    if (statusText) statusText.textContent = 'iCloud 동기화 완료';
+                    if (statusDetail) {
+                        statusDetail.textContent = '마지막 동기화: ' + 
+                            (lastSyncTime ? lastSyncTime.toLocaleString('ko-KR') : '방금 전');
+                    }
+                    break;
+                case 'error':
+                    if (icon) icon.textContent = '⚠️';
+                    if (statusIcon) statusIcon.textContent = '⚠️';
+                    if (statusText) statusText.textContent = text;
+                    break;
+                case 'pending':
+                    if (icon) icon.textContent = '⏳';
+                    if (statusText) statusText.textContent = text;
+                    break;
+                case 'ready':
+                    if (icon) icon.textContent = '☁️';
+                    if (statusText) statusText.textContent = text;
+                    break;
+            }
+        }
+        
+        // 동기화 통계 업데이트
+        function updateSyncStats() {
+            const customerCount = document.getElementById('sync-customer-count');
+            const fileSize = document.getElementById('sync-file-size');
+            
+            if (customerCount) {
+                customerCount.textContent = customers.length;
+            }
+            
+            if (fileSize) {
+                const data = JSON.stringify({
+                    customers: customers,
+                    keyPositions: keyPositions,
+                    todos: todos
+                });
+                const sizeKB = Math.round(data.length / 1024);
+                fileSize.textContent = sizeKB + ' KB';
+            }
+        }
+        
+        // iCloud 배너 표시
+        function showICloudBanner(type, text) {
+            const banner = document.getElementById('icloud-status-banner');
+            const icon = document.getElementById('icloud-banner-icon');
+            const textEl = document.getElementById('icloud-banner-text');
+            
+            if (type === 'success') {
+                icon.textContent = '✅';
+                banner.style.background = 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
+            } else if (type === 'error') {
+                icon.textContent = '⚠️';
+                banner.style.background = 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
+            } else {
+                icon.textContent = 'ℹ️';
+                banner.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
+            }
+            
+            textEl.textContent = text;
+            banner.style.display = 'flex';
+            
+            // 5초 후 자동 숨김
+            setTimeout(function() {
+                banner.style.display = 'none';
+            }, 5000);
+        }
+        
+        function hideICloudBanner() {
+            document.getElementById('icloud-status-banner').style.display = 'none';
+        }
+
+        // 초기 렌더링
+        renderCustomerList();
+        checkAndUpdateTodos();
+        
+        // iCloud 동기화 초기화
+        initICloudSync();
+        
+        // Todo 체크박스 및 버튼 이벤트 위임
+        document.addEventListener('click', function(e) {
+            // 체크박스 클릭
+            if (e.target.classList.contains('todo-checkbox')) {
+                var todoId = parseInt(e.target.getAttribute('data-todo-id'));
+                if (todoId) {
+                    toggleTodo(todoId);
+                }
+            }
+            
+            // 삭제 버튼 클릭
+            if (e.target.classList.contains('delete-todo-btn') || 
+                e.target.closest('.delete-todo-btn')) {
+                var btn = e.target.classList.contains('delete-todo-btn') ? 
+                         e.target : e.target.closest('.delete-todo-btn');
+                var todoId = parseInt(btn.getAttribute('data-todo-id'));
+                if (todoId) {
+                    deleteTodo(todoId);
+                }
+            }
+            
+            // 수정 버튼 클릭
+            if (e.target.classList.contains('edit-todo-btn') || 
+                e.target.closest('.edit-todo-btn')) {
+                var btn = e.target.classList.contains('edit-todo-btn') ? 
+                         e.target : e.target.closest('.edit-todo-btn');
+                var todoId = parseInt(btn.getAttribute('data-todo-id'));
+                if (todoId) {
+                    editTodo(todoId);
+                }
+            }
+        });
+        
+        // 주기적 자동 갱신 (1분마다)
+        setInterval(function() {
+            checkAndUpdateTodos();
+        }, 60000);
+    </script>
+</body>
+</html>
