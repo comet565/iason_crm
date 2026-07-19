@@ -369,6 +369,8 @@
             width: 95%;
             max-height: 100%;
             overflow-y: auto;
+            overflow-x: hidden;
+            box-sizing: border-box;
             animation: slideUp 0.25s;
         }
 
@@ -1403,12 +1405,12 @@
 
                 <div class="form-group">
                     <label>연락 이력</label>
-                    <div style="background: var(--surface-muted); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
-                        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                            <input type="date" id="contact-log-date" style="flex: 0 0 150px;">
-                            <input type="text" id="contact-log-note" placeholder="메모 (예: 전화 통화, 방문 등)" style="flex: 1;">
-                            <button type="button" class="btn btn-secondary" onclick="addContactLogEntry()" style="white-space: nowrap;">기록 추가</button>
+                    <div style="background: var(--surface-muted); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; max-width: 100%; box-sizing: border-box;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px; max-width: 100%;">
+                            <input type="date" id="contact-log-date" style="flex: 1 1 0; min-width: 0;">
+                            <button type="button" class="btn btn-secondary" onclick="addContactLogEntry()" style="white-space: nowrap; flex: 0 0 auto;">기록 추가</button>
                         </div>
+                        <input type="text" id="contact-log-note" placeholder="메모 (예: 전화 통화, 방문 등)" style="width: 100%; box-sizing: border-box; margin-bottom: 12px;">
                         <div id="contact-log-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
                     </div>
                 </div>
