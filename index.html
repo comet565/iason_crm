@@ -351,6 +351,8 @@
             backdrop-filter: blur(4px);
             z-index: 1000;
             animation: fadeIn 0.2s;
+            box-sizing: border-box;
+            padding: calc(env(safe-area-inset-top) + 16px) 12px calc(env(safe-area-inset-bottom) + 16px);
         }
 
         .modal.active {
@@ -365,7 +367,7 @@
             padding: 28px;
             max-width: 900px;
             width: 95%;
-            max-height: 95vh;
+            max-height: 100%;
             overflow-y: auto;
             animation: slideUp 0.25s;
         }
@@ -401,6 +403,10 @@
             color: var(--text-tertiary);
             cursor: pointer;
             line-height: 1;
+            padding: 10px;
+            margin: -10px -6px -10px 0;
+            min-width: 44px;
+            min-height: 44px;
         }
 
         .close-btn:hover {
