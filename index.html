@@ -83,6 +83,13 @@
             margin-bottom: 24px;
             border-bottom: 1px solid var(--border);
             align-items: center;
+        }
+
+        .tab-scroll {
+            display: flex;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
             flex-wrap: wrap;
         }
 
@@ -815,9 +822,10 @@
                 grid-template-columns: 1fr;
             }
 
-            .tab-container {
+            .tab-scroll {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
+                flex-wrap: nowrap;
             }
 
             .tab {
@@ -844,15 +852,17 @@
 
     <div class="container">
         <div class="tab-container">
-            <button class="tab active" onclick="switchTab('customers')">고객 목록</button>
-            <button class="tab" onclick="switchTab('key-customers')">핵심 고객</button>
-            <button class="tab" onclick="switchTab('todo')">
-                To-Do List
-                <span id="todo-badge" class="tab-badge" style="display: none;">0</span>
-            </button>
-            <button class="tab" onclick="switchTab('add')">고객 추가</button>
-            <button class="tab" onclick="switchTab('network')">관계도</button>
-            <div class="menu-wrapper" style="margin-left: auto; position: relative;">
+            <div class="tab-scroll">
+                <button class="tab active" onclick="switchTab('customers')">고객 목록</button>
+                <button class="tab" onclick="switchTab('key-customers')">핵심 고객</button>
+                <button class="tab" onclick="switchTab('todo')">
+                    To-Do List
+                    <span id="todo-badge" class="tab-badge" style="display: none;">0</span>
+                </button>
+                <button class="tab" onclick="switchTab('add')">고객 추가</button>
+                <button class="tab" onclick="switchTab('network')">관계도</button>
+            </div>
+            <div class="menu-wrapper" style="position: relative;">
                 <button class="btn btn-secondary" onclick="toggleMoreMenu()" aria-label="더보기">⋯</button>
                 <div id="more-menu" class="more-menu">
                     <button onclick="closeMoreMenu(); openSyncModal();">동기화</button>
