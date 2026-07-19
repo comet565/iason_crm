@@ -2161,14 +2161,49 @@
         }
 
         // 검색어의 각 단어가 고객의 어떤 필드에든 포함되어 있으면 매치 (AND 검색)
+        // 소속구분(service) 약칭 ↔ 정식 명칭. 고객 데이터엔 "ADD"로 저장되지만
+        // 사용자는 흔히 "국과연"으로 검색하는 식의 괴리를 메우기 위한 매핑
+        var SERVICE_ALIASES = {
+            'ADD': ['국과연', '국방과학연구소'],
+            '국기연': ['국방기술진흥연구소', 'KRIT'],
+            '기품원': ['국방기술품질원', 'DTaQ'],
+            'KIDA': ['한국국방연구원'],
+            'KARI': ['한국항공우주연구원'],
+            'ETRI': ['한국전자통신연구원'],
+            'IITP': ['정보통신기획평가원'],
+        };
+
+        // 이 고객의 소속구분(service)이나 기관명(organization)에 대응되는 별칭들을
+        // 전부 모아준다. 양방향: service 코드로 정식명칭을 찾기도 하고, 기관명에
+        // 정식명칭이 풀어써져 있으면 반대로 코드/약칭을 찾기도 한다.
+        function getServiceAliasTerms(c) {
+            var terms = [];
+            if (SERVICE_ALIASES[c.service]) {
+                terms = terms.concat(SERVICE_ALIASES[c.service]);
+            }
+            if (c.organization) {
+                Object.keys(SERVICE_ALIASES).forEach(function(code) {
+                    var aliases = SERVICE_ALIASES[code];
+                    var matchesAlias = aliases.some(function(alias) { return c.organization.includes(alias); });
+                    if (matchesAlias || c.organization.includes(code)) {
+                        terms.push(code);
+                        terms = terms.concat(aliases);
+                    }
+                });
+            }
+            return terms;
+        }
+
         function customerMatchesSearch(c, term) {
             var keywords = term.toLowerCase().split(/\s+/).filter(Boolean);
             if (keywords.length === 0) return true;
 
+            var aliasTerms = getServiceAliasTerms(c).join(' ');
+
             var haystack = [
                 c.name, c.position, c.department, c.organization, c.militaryType,
                 c.classNumber, c.rank, c.service, c.school, c.major,
-                c.phone, c.email, c.family, c.relations, c.notes
+                c.phone, c.email, c.family, c.relations, c.notes, aliasTerms
             ].filter(Boolean).join(' ').toLowerCase();
 
             return keywords.every(function(kw) { return haystack.includes(kw); });
@@ -2211,18 +2246,7 @@
             var sortBy = sortSelect ? sortSelect.value : 'recent';
             var filterBy = filterSelect ? filterSelect.value : 'all';
 
-            var displayCustomers = customers;
-
-            if (filterBy === '핵심고객') {
-                displayCustomers = displayCustomers.filter(function(c) { return keyCustomerIds.includes(c.id); });
-            } else if (filterBy === 'ADD') {
-                displayCustomers = displayCustomers.filter(function(c) {
-                    return c.service === 'ADD' || c.service === '국과연' || c.service === 'ADD(국과연)' ||
-                           c.organization === 'ADD' || c.organization === '국과연';
-                });
-            } else if (filterBy && filterBy !== 'all') {
-                displayCustomers = displayCustomers.filter(function(c) { return c.service === filterBy; });
-            }
+            var displayCustomers = getFilteredCustomers(filterBy || 'all');
 
             if (searchTerm) {
                 displayCustomers = displayCustomers.filter(function(c) { return customerMatchesSearch(c, searchTerm); });
@@ -2780,15 +2804,15 @@
             if (filter === '중장') return customers.filter(function(c) { return c.rank === '중장'; });
             if (filter === '핵심고객') return customers.filter(function(c) { return keyCustomerIds.includes(c.id); });
 
-            // ADD와 국과연은 같은 것으로 처리
+            // ADD와 국과연은 같은 것으로 처리 (예전에 service가 '국과연'으로 저장된
+            // 데이터도 있을 수 있어 그 값도 함께 확인)
             if (filter === 'ADD') {
                 return customers.filter(function(c) {
                     return c.service === 'ADD' ||
                            c.service === '국과연' ||
                            c.service === 'ADD(국과연)' ||
                            c.organization === 'ADD' ||
-                           c.organization === '국과연' ||
-                           c.organization === 'ADD(국과연)';
+                           (c.organization && (c.organization.includes('국과연') || c.organization.includes('국방과학연구소')));
                 });
             }
 
@@ -2800,9 +2824,15 @@
                 });
             }
 
-            // 특정 조직 필터 (service 또는 organization 필드에서 찾기)
+            // 특정 조직 필터 (service가 정확히 일치하거나, 기관명에 정식 명칭/별칭이
+            // 풀어써져 있는 경우도 찾는다 — VCF 가져오기 등으로 소속구분은 비어있고
+            // 기관명만 채워진 고객도 놓치지 않기 위함)
+            var aliases = SERVICE_ALIASES[filter] || [];
             return customers.filter(function(c) {
-                return c.service === filter || c.organization === filter;
+                if (c.service === filter) return true;
+                if (c.organization === filter) return true;
+                if (c.organization && aliases.some(function(alias) { return c.organization.includes(alias); })) return true;
+                return false;
             });
         }
         
