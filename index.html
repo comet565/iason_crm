@@ -446,6 +446,43 @@
             color: var(--text-primary);
         }
 
+        .more-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 6px;
+            min-width: 180px;
+            z-index: 100;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .more-menu.active {
+            display: flex;
+        }
+
+        .more-menu button {
+            background: none;
+            border: none;
+            text-align: left;
+            padding: 10px 12px;
+            font-size: 14px;
+            color: var(--text-primary);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .more-menu button:hover {
+            background: var(--surface-muted);
+        }
+
         .filter-btn.active {
             background: var(--text-primary);
             color: white;
@@ -815,10 +852,15 @@
             </button>
             <button class="tab" onclick="switchTab('add')">고객 추가</button>
             <button class="tab" onclick="switchTab('network')">관계도</button>
-            <button class="btn btn-secondary" onclick="openSyncModal()" style="margin-left: auto;">동기화</button>
-            <button class="btn btn-secondary" onclick="exportData()">데이터 내보내기</button>
-            <button class="btn btn-secondary" onclick="openImportModal()">데이터 가져오기</button>
-            <button class="btn btn-secondary" onclick="loadPromotionData()">2025.11 진급자</button>
+            <div class="menu-wrapper" style="margin-left: auto; position: relative;">
+                <button class="btn btn-secondary" onclick="toggleMoreMenu()" aria-label="더보기">⋯</button>
+                <div id="more-menu" class="more-menu">
+                    <button onclick="closeMoreMenu(); openSyncModal();">동기화</button>
+                    <button onclick="closeMoreMenu(); exportData();">데이터 내보내기</button>
+                    <button onclick="closeMoreMenu(); openImportModal();">데이터 가져오기</button>
+                    <button onclick="closeMoreMenu(); loadPromotionData();">2025.11 진급자</button>
+                </div>
+            </div>
         </div>
 
         <!-- iCloud 동기화 상태 알림 -->
@@ -835,8 +877,43 @@
             <div class="card">
                 <h2>등록된 고객</h2>
                 <div class="search-box">
-                    <input type="text" id="customer-search" placeholder="이름, 직책, 기관, 기수 등으로 검색..." onkeyup="searchCustomers()">
+                    <input type="text" id="customer-search" placeholder="이름, 직책, 기관, 기수, 학교, 전공, 비고 등으로 검색..." onkeyup="searchCustomers()">
                     <button class="btn btn-secondary" onclick="clearSearch()">검색 초기화</button>
+                </div>
+                <div class="visualization-controls" style="margin-bottom: 18px;">
+                    <div class="control-group">
+                        <label>정렬</label>
+                        <select id="customer-sort" onchange="searchCustomers()">
+                            <option value="recent">최근 등록순</option>
+                            <option value="name">이름순</option>
+                            <option value="rank">계급순</option>
+                            <option value="class">기수순</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>소속 필터</label>
+                        <select id="customer-filter" onchange="searchCustomers()">
+                            <option value="all">전체</option>
+                            <optgroup label="군">
+                                <option value="육군">육군</option>
+                                <option value="해군">해군</option>
+                                <option value="공군">공군</option>
+                                <option value="해병대">해병대</option>
+                            </optgroup>
+                            <optgroup label="정출연">
+                                <option value="ADD">ADD(국과연)</option>
+                                <option value="국기연">국기연</option>
+                                <option value="기품원">기품원</option>
+                                <option value="IITP">IITP</option>
+                                <option value="ETRI">ETRI</option>
+                            </optgroup>
+                            <optgroup label="기타">
+                                <option value="공무원">공무원</option>
+                                <option value="기업">기업</option>
+                                <option value="핵심고객">핵심 고객만</option>
+                            </optgroup>
+                        </select>
+                    </div>
                 </div>
                 <div id="customer-list" class="customer-list"></div>
             </div>
@@ -1645,6 +1722,21 @@
         let currentKeyFilter = 'all';
 
         // 탭 전환
+        function toggleMoreMenu() {
+            document.getElementById('more-menu').classList.toggle('active');
+        }
+
+        function closeMoreMenu() {
+            document.getElementById('more-menu').classList.remove('active');
+        }
+
+        document.addEventListener('click', function(e) {
+            var wrapper = document.querySelector('.menu-wrapper');
+            if (wrapper && !wrapper.contains(e.target)) {
+                closeMoreMenu();
+            }
+        });
+
         function switchTab(tab) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
@@ -1681,26 +1773,66 @@
             document.getElementById('vcf-help-modal').classList.remove('active');
         }
         
+        // 연락처 하나를 고객 추가 폼에 채워넣기 (자동 저장하지 않고, 나머지 정보는 사용자가 이어서 입력)
+        function fillAddFormFromContact(contact) {
+            switchTab('add');
+
+            var name = contact.name && contact.name.length > 0 ? contact.name[0] : '';
+            var phone = contact.tel && contact.tel.length > 0 ? contact.tel[0] : '';
+            var email = contact.email && contact.email.length > 0 ? contact.email[0] : '';
+            var address = contact.address && contact.address.length > 0 ? contact.address[0] : '';
+
+            document.getElementById('name').value = name;
+            document.getElementById('phone').value = phone;
+            document.getElementById('email').value = email;
+            document.getElementById('organization').value = contact.org || '';
+            document.getElementById('position').value = contact.title || '';
+            document.getElementById('work-address').value = address;
+
+            showSyncBanner('success', '연락처 정보를 불러왔습니다. 나머지 정보를 입력해주세요.');
+
+            var nameField = document.getElementById('name');
+            nameField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(function() { document.getElementById('rank').focus(); }, 400);
+        }
+
         // VCF 파일 업로드 처리
         function handleVCFUpload(event) {
             const files = event.target.files;
             if (!files || files.length === 0) return;
-            
+
+            const reader0 = new FileReader();
+            reader0.onload = function(e0) {
+                const firstContacts = parseVCF(e0.target.result);
+                // 연락처 1개짜리 파일 1개만 업로드한 경우: 폼에 채워서 이어서 입력하도록 유도
+                if (files.length === 1 && firstContacts.length === 1) {
+                    fillAddFormFromContact(firstContacts[0]);
+                    event.target.value = '';
+                    return;
+                }
+                handleVCFBulkUpload(files);
+            };
+            reader0.onerror = function() { handleVCFBulkUpload(files); };
+            reader0.readAsText(files[0], 'UTF-8');
+        }
+
+        // VCF 대량 업로드 처리 (연락처 여러 개, 바로 등록)
+        function handleVCFBulkUpload(files) {
             let totalContacts = 0;
             let addedCount = 0;
             let updatedCount = 0;
             let processedFiles = 0;
-            
+
             // 모든 파일 처리
             Array.from(files).forEach(function(file) {
                 const reader = new FileReader();
-                
+
                 reader.onload = function(e) {
                     const vcfContent = e.target.result;
                     const contacts = parseVCF(vcfContent);
-                    
+
                     totalContacts += contacts.length;
-                    
+
                     contacts.forEach(function(contact) {
                         // 중복 체크
                         const duplicate = checkDuplicateContact(contact);
@@ -1722,12 +1854,10 @@
                     // 모든 파일 처리 완료
                     if (processedFiles === files.length) {
                         localStorage.setItem('customers', JSON.stringify(customers));
-                        
-                        // iCloud 자동 동기화 트리거
-                        // triggerAutoSync(); // iCloud 기능 비활성화
-                        
+                        triggerAutoSync();
+
                         renderCustomerList();
-                        
+
                         let message = '✅ VCF 파일 가져오기 완료!\n\n';
                         message += '총 연락처: ' + totalContacts + '명\n';
                         message += '• 새로 추가: ' + addedCount + '명\n';
@@ -1735,12 +1865,13 @@
                             message += '• 업데이트: ' + updatedCount + '명\n';
                         }
                         message += '\n고객 목록에서 추가 정보를 입력해주세요.';
-                        
+
                         alert(message);
                         switchTab('customers');
-                        
+
                         // 입력 초기화
-                        event.target.value = '';
+                        var fileInput = document.getElementById('vcf-file-input');
+                        if (fileInput) fileInput.value = '';
                     }
                 };
                 
@@ -1948,8 +2079,7 @@
             customers.push(customer);
             localStorage.setItem('customers', JSON.stringify(customers));
             
-            // iCloud 자동 동기화 트리거
-            // triggerAutoSync(); // iCloud 기능 비활성화
+            triggerAutoSync();
             
             this.reset();
             alert('고객이 등록되었습니다.');
@@ -1961,30 +2091,91 @@
         });
 
         // 고객 목록 렌더링
+        var RANK_ORDER = ['대장','중장','소장','준장','대령','중령','소령','대위',
+            '국장','사무관','주무관',
+            '본부장','센터장','실장','수석','책임','전문','선임',
+            '부장','차장','과장','팀장','대리','사원'];
+
+        function getRankWeight(rank) {
+            var idx = rank ? RANK_ORDER.indexOf(rank) : -1;
+            return idx === -1 ? 999 : idx;
+        }
+
+        // 검색어의 각 단어가 고객의 어떤 필드에든 포함되어 있으면 매치 (AND 검색)
+        function customerMatchesSearch(c, term) {
+            var keywords = term.toLowerCase().split(/\s+/).filter(Boolean);
+            if (keywords.length === 0) return true;
+
+            var haystack = [
+                c.name, c.position, c.department, c.organization, c.militaryType,
+                c.classNumber, c.rank, c.service, c.school, c.major,
+                c.phone, c.email, c.family, c.relations, c.notes
+            ].filter(Boolean).join(' ').toLowerCase();
+
+            return keywords.every(function(kw) { return haystack.includes(kw); });
+        }
+
+        function sortCustomers(list, sortBy) {
+            var sorted = list.slice();
+            switch (sortBy) {
+                case 'name':
+                    sorted.sort(function(a, b) { return (a.name || '').localeCompare(b.name || '', 'ko'); });
+                    break;
+                case 'rank':
+                    sorted.sort(function(a, b) { return getRankWeight(a.rank) - getRankWeight(b.rank); });
+                    break;
+                case 'class':
+                    sorted.sort(function(a, b) {
+                        var an = parseInt(a.classNumber, 10), bn = parseInt(b.classNumber, 10);
+                        var aValid = !isNaN(an), bValid = !isNaN(bn);
+                        if (aValid && bValid) return an - bn;
+                        if (aValid) return -1;
+                        if (bValid) return 1;
+                        return 0;
+                    });
+                    break;
+                case 'recent':
+                default:
+                    sorted.sort(function(a, b) {
+                        return (b.createdAt ? new Date(b.createdAt).getTime() : (b.id || 0)) -
+                               (a.createdAt ? new Date(a.createdAt).getTime() : (a.id || 0));
+                    });
+            }
+            return sorted;
+        }
+
         function renderCustomerList(searchTerm) {
             const container = document.getElementById('customer-list');
-            
+
+            var sortSelect = document.getElementById('customer-sort');
+            var filterSelect = document.getElementById('customer-filter');
+            var sortBy = sortSelect ? sortSelect.value : 'recent';
+            var filterBy = filterSelect ? filterSelect.value : 'all';
+
             var displayCustomers = customers;
-            
-            if (searchTerm) {
-                var term = searchTerm.toLowerCase();
-                displayCustomers = customers.filter(function(c) {
-                    return (c.name && c.name.toLowerCase().includes(term)) ||
-                           (c.position && c.position.toLowerCase().includes(term)) ||
-                           (c.department && c.department.toLowerCase().includes(term)) ||
-                           (c.organization && c.organization.toLowerCase().includes(term)) ||
-                           (c.militaryType && c.militaryType.toLowerCase().includes(term)) ||
-                           (c.classNumber && c.classNumber.includes(term)) ||
-                           (c.rank && c.rank.toLowerCase().includes(term)) ||
-                           (c.service && c.service.toLowerCase().includes(term));
+
+            if (filterBy === '핵심고객') {
+                displayCustomers = displayCustomers.filter(function(c) { return keyCustomerIds.includes(c.id); });
+            } else if (filterBy === 'ADD') {
+                displayCustomers = displayCustomers.filter(function(c) {
+                    return c.service === 'ADD' || c.service === '국과연' || c.service === 'ADD(국과연)' ||
+                           c.organization === 'ADD' || c.organization === '국과연';
                 });
+            } else if (filterBy && filterBy !== 'all') {
+                displayCustomers = displayCustomers.filter(function(c) { return c.service === filterBy; });
             }
-            
+
+            if (searchTerm) {
+                displayCustomers = displayCustomers.filter(function(c) { return customerMatchesSearch(c, searchTerm); });
+            }
+
+            displayCustomers = sortCustomers(displayCustomers, sortBy);
+
             if (displayCustomers.length === 0) {
                 container.innerHTML = '<div class="empty-state"><h3>' + (searchTerm ? '검색 결과가 없습니다' : '등록된 고객이 없습니다') + '</h3><p>' + (searchTerm ? '다른 검색어를 입력해주세요' : '새 고객을 추가해주세요') + '</p></div>';
                 return;
             }
-            
+
             container.innerHTML = displayCustomers.map(function(customer) {
                 // 핵심 고객 여부 확인
                 var isKey = keyCustomerIds.includes(customer.id);
@@ -2035,8 +2226,7 @@
                 console.log('핵심 고객 추가:', customerId);
                 console.log('현재 핵심 고객 ID 목록:', keyCustomerIds);
                 
-                // iCloud 동기화
-                // triggerAutoSync(); // iCloud 기능 비활성화
+                triggerAutoSync();
                 
                 // 화면 새로고침
                 renderCustomerList();
@@ -2061,8 +2251,7 @@
             console.log('핵심 고객 제거:', customerId);
             console.log('현재 핵심 고객 ID 목록:', keyCustomerIds);
             
-            // iCloud 동기화
-            // triggerAutoSync(); // iCloud 기능 비활성화
+            triggerAutoSync();
             
             // 화면 새로고침
             renderCustomerList();
@@ -2230,8 +2419,7 @@
             
             localStorage.setItem('customers', JSON.stringify(customers));
             
-            // iCloud 자동 동기화 트리거
-            // triggerAutoSync(); // iCloud 기능 비활성화
+            triggerAutoSync();
             
             closeModal();
             renderCustomerList();
@@ -2255,8 +2443,7 @@
             localStorage.setItem('customers', JSON.stringify(customers));
             localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
             
-            // iCloud 자동 동기화 트리거
-            // triggerAutoSync(); // iCloud 기능 비활성화
+            triggerAutoSync();
             
             closeModal();
             renderCustomerList();
@@ -2381,8 +2568,7 @@
                     localStorage.setItem('todos', JSON.stringify(todos));
                     localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
                     
-                    // iCloud 자동 동기화 트리거
-                    // triggerAutoSync(); // iCloud 기능 비활성화
+                    triggerAutoSync();
                     
                     closeImportModal();
                     renderCustomerList();
@@ -2707,7 +2893,7 @@
                 var rankCustomers = filteredCustomers.filter(function(c) { return c.rank === rank; });
                 if (rankCustomers.length > 0) {
                     html += '<div class="viz-group">';
-                    html += '<div class="viz-group-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">';
+                    html += '<div class="viz-group-header">';
                     html += '<div class="viz-group-title">' + rank + '</div>';
                     html += '<div class="viz-group-count">' + rankCustomers.length + '명</div>';
                     html += '</div>';
@@ -2778,9 +2964,9 @@
             }
             
             var html = '<div style="padding: 20px 0;">';
-            html += '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 30px;">';
-            html += '<h2 style="margin: 0 0 10px 0; font-size: 24px;">🔗 인맥 네트워크 분석</h2>';
-            html += '<p style="margin: 0; opacity: 0.9; font-size: 14px;">' + networks.length + '개의 인맥 그룹을 발견했습니다</p>';
+            html += '<div style="background: var(--text-primary); color: white; padding: 20px; border-radius: var(--radius-lg); margin-bottom: 30px;">';
+            html += '<h2 style="margin: 0 0 10px 0; font-size: 20px; font-weight: 600;">🔗 인맥 네트워크 분석</h2>';
+            html += '<p style="margin: 0; opacity: 0.7; font-size: 13px;">' + networks.length + '개의 인맥 그룹을 발견했습니다</p>';
             html += '</div>';
             
             networks.forEach(function(network, index) {
@@ -2818,7 +3004,31 @@
         // 네트워크 분석
         function analyzeNetworks(customers) {
             var networks = [];
-            
+
+            // 0. 직접 지정한 관계 (고객 등록 시 '관련 고객' 필드에 입력한 이름 기준, 가장 신뢰도 높음)
+            var seenPairs = {};
+            customers.forEach(function(c) {
+                if (!c.relations) return;
+                var relatedNames = c.relations.split(',').map(function(n) { return n.trim(); }).filter(Boolean);
+                relatedNames.forEach(function(relatedName) {
+                    var match = customers.find(function(other) {
+                        return other.id !== c.id && other.name === relatedName;
+                    });
+                    if (!match) return;
+                    var pairKey = [c.id, match.id].sort().join('|');
+                    if (seenPairs[pairKey]) return;
+                    seenPairs[pairKey] = true;
+
+                    networks.push({
+                        type: 'direct',
+                        title: c.name + ' ↔ ' + match.name,
+                        description: '직접 등록한 관련 고객',
+                        members: [c, match],
+                        strength: 100 // 사용자가 직접 지정한 관계라 가장 신뢰도 높음
+                    });
+                });
+            });
+
             // 1. 같은 학교 + 같은 전공
             var schoolMajorGroups = {};
             customers.forEach(function(c) {
@@ -2964,27 +3174,31 @@
             return networks;
         }
         
-        // 네트워크 타입별 색상
+        // 네트워크 타입별 색상 (뉴트럴 톤 + 신뢰도가 높을수록 진하게)
         function getNetworkColor(type) {
             switch(type) {
-                case 'school-major':
-                    return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                case 'school':
-                    return 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+                case 'direct':
+                    return 'var(--accent)';
                 case 'military-class':
-                    return 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
-                case 'major':
-                    return 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
+                    return '#3d4451';
+                case 'school-major':
+                    return '#4a5568';
+                case 'school':
+                    return '#5a6b7d';
                 case 'organization':
-                    return 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
+                    return '#5a6b7d';
+                case 'major':
+                    return '#6b7684';
                 default:
-                    return 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)';
+                    return '#78838f';
             }
         }
-        
+
         // 네트워크 타입별 아이콘
         function getNetworkIcon(type) {
             switch(type) {
+                case 'direct':
+                    return '⭐';
                 case 'school-major':
                     return '🎓';
                 case 'school':
@@ -3259,8 +3473,7 @@
             
             localStorage.setItem('todos', JSON.stringify(todos));
             
-            // iCloud 자동 동기화 트리거
-            // triggerAutoSync(); // iCloud 기능 비활성화
+            triggerAutoSync();
             
             renderTodoList();
             updateTodoBadge();
@@ -3285,8 +3498,7 @@
             
             localStorage.setItem('todos', JSON.stringify(todos));
             
-            // iCloud 자동 동기화 트리거
-            // triggerAutoSync(); // iCloud 기능 비활성화
+            triggerAutoSync();
             
             renderTodoList();
             updateTodoBadge();
@@ -3325,8 +3537,7 @@
             
             localStorage.setItem('todos', JSON.stringify(todos));
             
-            // iCloud 자동 동기화 트리거
-            // triggerAutoSync(); // iCloud 기능 비활성화
+            triggerAutoSync();
             
             closeTodoModal();
             renderTodoList();
