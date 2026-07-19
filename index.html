@@ -3686,7 +3686,11 @@
             // 최초 접속 시 서버 데이터 확인 후 반영
             pullFromCloud(true);
 
-            // 실시간 구독: 다른 기기에서 데이터가 바뀌면 자동으로 반영
+            subscribeToCloudChannel();
+        }
+
+        // 실시간 구독: 다른 기기에서 데이터가 바뀌면 자동으로 반영
+        function subscribeToCloudChannel() {
             if (cloudChannel) {
                 cloudClient.removeChannel(cloudChannel);
             }
@@ -3710,10 +3714,11 @@
         }
 
         function applyRemoteData(data) {
+            if (!data || typeof data !== 'object') return;
             isApplyingRemote = true;
-            if (data.customers) customers = data.customers;
-            if (data.todos) todos = data.todos;
-            if (data.keyCustomerIds) keyCustomerIds = data.keyCustomerIds;
+            if (Array.isArray(data.customers)) customers = data.customers;
+            if (Array.isArray(data.todos)) todos = data.todos;
+            if (Array.isArray(data.keyCustomerIds)) keyCustomerIds = data.keyCustomerIds;
 
             localStorage.setItem('customers', JSON.stringify(customers));
             localStorage.setItem('todos', JSON.stringify(todos));
@@ -3820,19 +3825,35 @@
 
             try {
                 cloudConfig = { url: url, key: key, room: room };
-                connectCloud();
+                cloudClient = supabase.createClient(cloudConfig.url, cloudConfig.key);
 
-                // 최초 연결 시 현재 기기의 데이터를 서버에 업로드 (실패하면 예외를 던져서 아래 catch로 이동)
-                const payload = {
-                    room: cloudConfig.room,
-                    data: { customers: customers, todos: todos, keyCustomerIds: keyCustomerIds },
-                    updated_at: new Date().toISOString()
-                };
-                const { error } = await cloudClient.from('crm_sync').upsert(payload, { onConflict: 'room' });
-                if (error) throw error;
+                // 먼저 서버에 이미 데이터가 있는지 확인한다.
+                // 있으면 그걸 받아서 이 기기에 반영하고, 이 기기의 (비어있을 수도 있는)
+                // 로컬 데이터로 서버를 덮어쓰지 않는다 — 새 기기가 연결될 때마다
+                // 기존 데이터가 사라지는 사고를 막기 위한 순서다.
+                const { data: existing, error: fetchError } = await cloudClient
+                    .from('crm_sync')
+                    .select('data')
+                    .eq('room', cloudConfig.room)
+                    .maybeSingle();
+                if (fetchError) throw fetchError;
 
+                if (existing && existing.data) {
+                    applyRemoteData(existing.data);
+                } else {
+                    // 이 동기화 그룹으로 처음 연결하는 기기 — 현재 데이터를 서버의 시작 데이터로 업로드
+                    const payload = {
+                        room: cloudConfig.room,
+                        data: { customers: customers, todos: todos, keyCustomerIds: keyCustomerIds },
+                        updated_at: new Date().toISOString()
+                    };
+                    const { error: pushError } = await cloudClient.from('crm_sync').upsert(payload, { onConflict: 'room' });
+                    if (pushError) throw pushError;
+                    lastSyncTime = new Date();
+                }
+
+                subscribeToCloudChannel();
                 localStorage.setItem('cloudSyncConfig', JSON.stringify(cloudConfig));
-                lastSyncTime = new Date();
 
                 document.getElementById('sync-setup-view').style.display = 'none';
                 document.getElementById('sync-status-view').style.display = 'block';
