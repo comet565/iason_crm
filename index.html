@@ -1673,8 +1673,8 @@
             <div style="padding: 10px 0;">
                 <div id="sync-setup-view" style="display: none;">
                     <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px; line-height: 1.7;">
-                        아이폰과 아이패드에서 같은 데이터를 보려면 동기화 서버 연결 정보가 필요합니다.
-                        Supabase 프로젝트의 URL과 anon key를 입력해주세요.
+                        아이폰과 아이패드에서 같은 데이터를 보려면 계정으로 로그인해주세요.
+                        계정이 없다면 먼저 Supabase 대시보드에서 만들어야 합니다 — 안내를 요청하시면 알려드릴게요.
                     </p>
                     <div class="form-group" style="margin-bottom: 14px;">
                         <label>Supabase Project URL</label>
@@ -1684,12 +1684,16 @@
                         <label>Supabase Anon Key</label>
                         <input type="text" id="sync-key-input" placeholder="eyJhbGciOi...">
                     </div>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label>이메일</label>
+                        <input type="email" id="sync-email-input" placeholder="you@example.com" autocomplete="username">
+                    </div>
                     <div class="form-group" style="margin-bottom: 20px;">
-                        <label>동기화 그룹 이름 (같은 값을 쓰는 기기끼리 동기화됩니다)</label>
-                        <input type="text" id="sync-room-input" placeholder="예: my-crm" value="my-crm">
+                        <label>비밀번호</label>
+                        <input type="password" id="sync-password-input" placeholder="비밀번호" autocomplete="current-password">
                     </div>
                     <button id="sync-connect-btn" class="btn btn-primary" onclick="setupCloudSync()" style="width: 100%; padding: 13px;">
-                        동기화 연결하기
+                        로그인
                     </button>
                 </div>
 
@@ -1706,8 +1710,8 @@
                                 <div style="font-size: 12px; color: var(--text-secondary);">고객 수</div>
                             </div>
                             <div style="text-align: center;">
-                                <div style="font-size: 22px; font-weight: 700; color: var(--text-primary);" id="sync-room-name">-</div>
-                                <div style="font-size: 12px; color: var(--text-secondary);">동기화 그룹</div>
+                                <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); word-break: break-all;" id="sync-account-email">-</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">로그인 계정</div>
                             </div>
                         </div>
                     </div>
@@ -1715,7 +1719,7 @@
                     <div style="display: grid; gap: 8px;">
                         <button class="btn btn-primary" onclick="manualSyncToCloud()" style="width: 100%;">지금 서버에 저장</button>
                         <button class="btn btn-secondary" onclick="manualSyncFromCloud()" style="width: 100%;">서버에서 가져오기</button>
-                        <button class="btn btn-danger" onclick="disableCloudSync()" style="width: 100%;">동기화 해제</button>
+                        <button class="btn btn-danger" onclick="disableCloudSync()" style="width: 100%;">로그아웃</button>
                     </div>
                 </div>
             </div>
@@ -3883,9 +3887,14 @@
                   '총 고객: ' + customers.length + '명');
         }
 
-        // ===== 클라우드 동기화 시스템 (Supabase) =====
+        // ===== 클라우드 동기화 시스템 (Supabase, 로그인 기반) =====
+        // 로그인이 접근을 통제하므로, 동기화 대상을 나눌 필요가 없어 고정된 하나의
+        // room만 사용한다 (예전의 "동기화 그룹 이름" 입력은 더 이상 필요 없음).
+        var SYNC_ROOM = 'main';
+
         let cloudClient = null;
-        let cloudConfig = null; // { url, key, room }
+        let cloudConfig = null; // { url, key } — 비밀번호는 저장하지 않음
+        let cloudSession = null;
         let cloudChannel = null;
         let syncTimeout = null;
         let lastSyncTime = null;
@@ -3896,21 +3905,26 @@
             if (!saved) return;
             try {
                 cloudConfig = JSON.parse(saved);
-                connectCloud();
+                if (!cloudConfig.url || !cloudConfig.key) return;
+
+                cloudClient = supabase.createClient(cloudConfig.url, cloudConfig.key);
+
+                // Supabase SDK가 세션을 자체적으로 로컬에 저장해두므로, 유효한 세션이
+                // 남아있으면 비밀번호를 다시 입력하지 않아도 자동으로 재연결된다.
+                cloudClient.auth.getSession().then(function(result) {
+                    var session = result && result.data && result.data.session;
+                    if (session) {
+                        cloudSession = session;
+                        pullFromCloud(true);
+                        subscribeToCloudChannel();
+                    } else {
+                        cloudClient = null;
+                        cloudConfig = null;
+                    }
+                });
             } catch (e) {
                 console.log('동기화 설정 로드 오류:', e);
             }
-        }
-
-        function connectCloud() {
-            if (!cloudConfig || !cloudConfig.url || !cloudConfig.key || !cloudConfig.room) return;
-
-            cloudClient = supabase.createClient(cloudConfig.url, cloudConfig.key);
-
-            // 최초 접속 시 서버 데이터 확인 후 반영
-            pullFromCloud(true);
-
-            subscribeToCloudChannel();
         }
 
         // 실시간 구독: 다른 기기에서 데이터가 바뀌면 자동으로 반영
@@ -3919,12 +3933,12 @@
                 cloudClient.removeChannel(cloudChannel);
             }
             cloudChannel = cloudClient
-                .channel('crm-sync-' + cloudConfig.room)
+                .channel('crm-sync-' + SYNC_ROOM)
                 .on('postgres_changes', {
                     event: '*',
                     schema: 'public',
                     table: 'crm_sync',
-                    filter: 'room=eq.' + cloudConfig.room
+                    filter: 'room=eq.' + SYNC_ROOM
                 }, function(payload) {
                     if (isApplyingRemote) return;
                     if (payload.new && payload.new.data) {
@@ -3958,11 +3972,11 @@
         }
 
         async function pullFromCloud(silent) {
-            if (!cloudClient || !cloudConfig) return;
+            if (!cloudClient || !cloudSession) return;
             const { data, error } = await cloudClient
                 .from('crm_sync')
                 .select('data')
-                .eq('room', cloudConfig.room)
+                .eq('room', SYNC_ROOM)
                 .maybeSingle();
 
             if (error) {
@@ -3976,10 +3990,10 @@
         }
 
         async function pushToCloud() {
-            if (!cloudClient || !cloudConfig) return;
+            if (!cloudClient || !cloudSession) return;
             isApplyingRemote = true; // 내 저장으로 인한 realtime 이벤트는 무시
             const payload = {
-                room: cloudConfig.room,
+                room: SYNC_ROOM,
                 data: {
                     customers: customers,
                     todos: todos,
@@ -4000,7 +4014,7 @@
 
         // 데이터 변경 시 호출 (2초 후 자동 저장)
         function triggerAutoSync() {
-            if (!cloudClient) return;
+            if (!cloudClient || !cloudSession) return;
             if (syncTimeout) clearTimeout(syncTimeout);
             updateSyncStatusUI('저장 대기 중...');
             syncTimeout = setTimeout(function() {
@@ -4010,11 +4024,11 @@
 
         function openSyncModal() {
             document.getElementById('sync-modal').classList.add('active');
-            if (cloudClient) {
+            if (cloudClient && cloudSession) {
                 document.getElementById('sync-setup-view').style.display = 'none';
                 document.getElementById('sync-status-view').style.display = 'block';
                 document.getElementById('sync-customer-count').textContent = customers.length;
-                document.getElementById('sync-room-name').textContent = cloudConfig.room;
+                document.getElementById('sync-account-email').textContent = cloudSession.user.email;
             } else {
                 document.getElementById('sync-setup-view').style.display = 'block';
                 document.getElementById('sync-status-view').style.display = 'none';
@@ -4028,10 +4042,11 @@
         async function setupCloudSync() {
             const url = document.getElementById('sync-url-input').value.trim();
             const key = document.getElementById('sync-key-input').value.trim();
-            const room = document.getElementById('sync-room-input').value.trim();
+            const email = document.getElementById('sync-email-input').value.trim();
+            const password = document.getElementById('sync-password-input').value;
 
-            if (!url || !key || !room) {
-                alert('Supabase URL, Anon Key, 동기화 그룹 이름을 모두 입력해주세요.');
+            if (!url || !key || !email || !password) {
+                alert('Supabase URL, Anon Key, 이메일, 비밀번호를 모두 입력해주세요.');
                 return;
             }
 
@@ -4044,30 +4059,34 @@
             const originalText = connectBtn ? connectBtn.textContent : '';
             if (connectBtn) {
                 connectBtn.disabled = true;
-                connectBtn.textContent = '연결 중...';
+                connectBtn.textContent = '로그인 중...';
             }
 
             try {
-                cloudConfig = { url: url, key: key, room: room };
+                cloudConfig = { url: url, key: key };
                 cloudClient = supabase.createClient(cloudConfig.url, cloudConfig.key);
 
-                // 먼저 서버에 이미 데이터가 있는지 확인한다.
-                // 있으면 그걸 받아서 이 기기에 반영하고, 이 기기의 (비어있을 수도 있는)
-                // 로컬 데이터로 서버를 덮어쓰지 않는다 — 새 기기가 연결될 때마다
-                // 기존 데이터가 사라지는 사고를 막기 위한 순서다.
+                const { data: authData, error: authError } = await cloudClient.auth.signInWithPassword({ email: email, password: password });
+                if (authError) throw authError;
+                cloudSession = authData.session;
+
+                // 로그인 후 서버에 이미 데이터가 있는지 확인한다. 있으면 그걸 받아서
+                // 이 기기에 반영하고, 이 기기의 (비어있을 수도 있는) 로컬 데이터로
+                // 서버를 덮어쓰지 않는다 — 새 기기가 연결될 때마다 기존 데이터가
+                // 사라지는 사고를 막기 위한 순서다.
                 const { data: existing, error: fetchError } = await cloudClient
                     .from('crm_sync')
                     .select('data')
-                    .eq('room', cloudConfig.room)
+                    .eq('room', SYNC_ROOM)
                     .maybeSingle();
                 if (fetchError) throw fetchError;
 
                 if (existing && existing.data) {
                     applyRemoteData(existing.data);
                 } else {
-                    // 이 동기화 그룹으로 처음 연결하는 기기 — 현재 데이터를 서버의 시작 데이터로 업로드
+                    // 처음 로그인하는 경우 — 현재 데이터를 서버의 시작 데이터로 업로드
                     const payload = {
-                        room: cloudConfig.room,
+                        room: SYNC_ROOM,
                         data: { customers: customers, todos: todos, keyCustomerIds: keyCustomerIds },
                         updated_at: new Date().toISOString()
                     };
@@ -4078,21 +4097,23 @@
 
                 subscribeToCloudChannel();
                 localStorage.setItem('cloudSyncConfig', JSON.stringify(cloudConfig));
+                document.getElementById('sync-password-input').value = '';
 
                 document.getElementById('sync-setup-view').style.display = 'none';
                 document.getElementById('sync-status-view').style.display = 'block';
                 document.getElementById('sync-customer-count').textContent = customers.length;
-                document.getElementById('sync-room-name').textContent = room;
+                document.getElementById('sync-account-email').textContent = cloudSession.user.email;
                 updateSyncStatusUI('동기화됨');
 
-                showSyncBanner('success', '동기화가 연결되었습니다');
+                showSyncBanner('success', '로그인되었습니다');
             } catch (err) {
                 console.error('동기화 연결 오류:', err);
                 cloudClient = null;
                 cloudConfig = null;
-                alert('❌ 동기화 연결에 실패했습니다.\n\n' +
+                cloudSession = null;
+                alert('❌ 로그인에 실패했습니다.\n\n' +
                     (err && err.message ? err.message : '알 수 없는 오류') +
-                    '\n\nSupabase URL/Key가 정확한지, SQL 테이블 생성을 완료했는지 확인해주세요.');
+                    '\n\nSupabase URL/Key와 이메일/비밀번호가 정확한지 확인해주세요.');
             } finally {
                 if (connectBtn) {
                     connectBtn.disabled = false;
@@ -4111,17 +4132,21 @@
             await pullFromCloud(false);
         }
 
-        function disableCloudSync() {
-            if (!confirm('동기화를 해제하시겠습니까?\n\n서버의 데이터는 삭제되지 않으며, 이 기기에서만 연결이 해제됩니다.')) return;
+        async function disableCloudSync() {
+            if (!confirm('로그아웃하시겠습니까?\n\n서버의 데이터는 삭제되지 않으며, 이 기기에서만 동기화가 해제됩니다.')) return;
 
             if (cloudChannel && cloudClient) cloudClient.removeChannel(cloudChannel);
+            if (cloudClient) {
+                try { await cloudClient.auth.signOut(); } catch (e) { console.log('로그아웃 오류:', e); }
+            }
             cloudClient = null;
             cloudConfig = null;
+            cloudSession = null;
             cloudChannel = null;
 
             localStorage.removeItem('cloudSyncConfig');
             closeSyncModal();
-            showSyncBanner('info', '동기화가 해제되었습니다');
+            showSyncBanner('info', '로그아웃되었습니다');
         }
 
         function updateSyncStatusUI(text) {
