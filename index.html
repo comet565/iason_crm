@@ -2,9 +2,40 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Tactical CRM</title>
+
+    <!-- PWA: 홈 화면 설치 및 아이폰/아이패드 대응 -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#121316">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Tactical CRM">
+    <link rel="apple-touch-icon" href="./icons/icon-180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./icons/icon-16.png">
     <style>
+        :root {
+            --bg: #f5f5f7;
+            --surface: #ffffff;
+            --surface-muted: #fafafa;
+            --border: #e5e5ea;
+            --text-primary: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --text-tertiary: #a1a1a6;
+            --accent: #3a5ba9;
+            --accent-hover: #2f4a8c;
+            --accent-soft: rgba(58, 91, 169, 0.08);
+            --danger: #d64545;
+            --danger-soft: rgba(214, 69, 69, 0.08);
+            --success: #2f9e5b;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 7px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.06);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,85 +43,88 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
-            background: #f5f7fa;
-            color: #2c3e50;
-            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.55;
+            -webkit-font-smoothing: antialiased;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
+            padding-top: calc(20px + env(safe-area-inset-top));
         }
 
         header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: var(--text-primary);
             color: white;
-            padding: 30px 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            padding: 28px 24px;
+            margin-bottom: 24px;
+            border-radius: var(--radius-lg);
         }
 
         header h1 {
-            font-size: 28px;
+            font-size: 22px;
             font-weight: 600;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
+            letter-spacing: -0.01em;
         }
 
         header p {
-            opacity: 0.9;
-            font-size: 14px;
+            opacity: 0.6;
+            font-size: 13px;
         }
 
         .tab-container {
             display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #e1e8ed;
+            gap: 4px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
             align-items: center;
             flex-wrap: wrap;
         }
 
         .tab {
-            padding: 12px 24px;
+            padding: 12px 18px;
             background: none;
             border: none;
-            color: #5a6c7d;
-            font-size: 16px;
+            color: var(--text-secondary);
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
+            transition: color 0.2s;
+            border-bottom: 2px solid transparent;
             position: relative;
         }
 
         .tab:hover {
-            color: #2a5298;
+            color: var(--text-primary);
         }
 
         .tab.active {
-            color: #2a5298;
-            border-bottom-color: #2a5298;
+            color: var(--text-primary);
+            border-bottom-color: var(--accent);
         }
 
         .tab-badge {
             position: absolute;
-            top: 5px;
-            right: 10px;
-            background: #e53e3e;
+            top: 6px;
+            right: 6px;
+            background: var(--danger);
             color: white;
             border-radius: 10px;
             padding: 2px 6px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
-            min-width: 18px;
+            min-width: 16px;
             text-align: center;
         }
 
         .content-section {
             display: none;
-            animation: fadeIn 0.3s;
+            animation: fadeIn 0.25s;
         }
 
         .content-section.active {
@@ -98,30 +132,32 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
         .card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
             margin-bottom: 20px;
         }
 
         .card h2 {
-            font-size: 20px;
-            margin-bottom: 20px;
-            color: #1e3c72;
+            font-size: 17px;
+            margin-bottom: 18px;
+            color: var(--text-primary);
             font-weight: 600;
+            letter-spacing: -0.01em;
         }
 
         .form-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 14px;
+            margin-bottom: 18px;
         }
 
         .form-group {
@@ -134,46 +170,49 @@
             align-items: center;
             gap: 10px;
             margin-bottom: 15px;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-            border: 2px solid #e1e8ed;
+            padding: 14px;
+            background: var(--surface-muted);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
         }
 
         .form-group-checkbox input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             cursor: pointer;
+            accent-color: var(--accent);
         }
 
         .form-group-checkbox label {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 600;
-            color: #2a5298;
+            color: var(--accent);
             cursor: pointer;
             margin: 0;
         }
 
         label {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             margin-bottom: 6px;
-            color: #4a5568;
+            color: var(--text-secondary);
         }
 
         input, select, textarea {
             padding: 10px 12px;
-            border: 1.5px solid #e1e8ed;
-            border-radius: 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             font-size: 14px;
-            transition: all 0.3s;
+            transition: border-color 0.2s, box-shadow 0.2s;
             font-family: inherit;
+            background: var(--surface);
+            color: var(--text-primary);
         }
 
         input:focus, select:focus, textarea:focus {
             outline: none;
-            border-color: #2a5298;
-            box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft);
         }
 
         textarea {
@@ -182,77 +221,76 @@
         }
 
         .btn {
-            padding: 12px 24px;
+            padding: 11px 20px;
             border: none;
-            border-radius: 8px;
-            font-size: 15px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
             font-family: inherit;
         }
 
         .btn-primary {
-            background: #2a5298;
+            background: var(--accent);
             color: white;
         }
 
         .btn-primary:hover {
-            background: #1e3c72;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(42, 82, 152, 0.3);
+            background: var(--accent-hover);
         }
 
         .btn-secondary {
-            background: #f0f3f7;
-            color: #4a5568;
+            background: var(--surface-muted);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
         }
 
         .btn-secondary:hover {
-            background: #e1e8ed;
+            background: var(--border);
         }
 
         .btn-danger {
-            background: #e53e3e;
+            background: var(--danger);
             color: white;
         }
 
         .btn-danger:hover {
-            background: #c53030;
+            opacity: 0.88;
         }
 
         .customer-list {
             display: grid;
-            gap: 15px;
+            gap: 12px;
         }
 
         .customer-card {
-            background: #f8fafc;
-            border: 1.5px solid #e1e8ed;
-            border-radius: 10px;
-            padding: 18px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px 18px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         .customer-card:hover {
-            border-color: #2a5298;
-            box-shadow: 0 4px 12px rgba(42, 82, 152, 0.15);
-            transform: translateY(-2px);
+            border-color: var(--accent);
+            box-shadow: var(--shadow-md);
         }
 
         .customer-card h3 {
-            font-size: 18px;
-            margin-bottom: 10px;
-            color: #1e3c72;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
         }
 
         .customer-info {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 8px;
-            font-size: 14px;
-            color: #5a6c7d;
+            font-size: 13px;
+            color: var(--text-secondary);
         }
 
         .customer-info span {
@@ -262,13 +300,14 @@
 
         .customer-info strong {
             margin-right: 6px;
-            color: #2c3e50;
+            color: var(--text-primary);
+            font-weight: 500;
         }
 
         .action-buttons {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 8px;
+            margin-top: 14px;
         }
 
         .action-buttons button {
@@ -301,9 +340,10 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
             z-index: 1000;
-            animation: fadeIn 0.3s;
+            animation: fadeIn 0.2s;
         }
 
         .modal.active {
@@ -313,18 +353,18 @@
         }
 
         .modal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 28px;
             max-width: 900px;
             width: 95%;
             max-height: 95vh;
             overflow-y: auto;
-            animation: slideUp 0.3s;
+            animation: slideUp 0.25s;
         }
 
         @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
+            from { transform: translateY(16px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
 
@@ -336,41 +376,44 @@
         }
 
         .modal-header h2 {
-            font-size: 22px;
-            color: #1e3c72;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
         }
 
         .close-btn {
             background: none;
             border: none;
-            font-size: 28px;
-            color: #718096;
+            font-size: 24px;
+            color: var(--text-tertiary);
             cursor: pointer;
             line-height: 1;
         }
 
         .close-btn:hover {
-            color: #2c3e50;
+            color: var(--text-primary);
         }
 
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #718096;
+            color: var(--text-tertiary);
         }
 
         .viz-card-badge {
             display: inline-block;
             padding: 3px 8px;
-            background: #f0f3f7;
-            border-radius: 4px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
             font-size: 11px;
             margin: 3px 2px;
             font-weight: 500;
         }
 
         .key-customer-badge {
-            background: #e53e3e;
+            background: var(--danger);
             color: white;
             margin-left: 8px;
         }
@@ -381,62 +424,66 @@
 
         .key-customer-filter {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             margin-bottom: 20px;
             flex-wrap: wrap;
         }
 
         .filter-btn {
             padding: 8px 16px;
-            border: 2px solid #e1e8ed;
-            background: white;
-            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-secondary);
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
+            transition: all 0.2s;
+            font-size: 13px;
             font-weight: 500;
         }
 
         .filter-btn:hover {
-            border-color: #2a5298;
+            border-color: var(--accent);
+            color: var(--text-primary);
         }
 
         .filter-btn.active {
-            background: #2a5298;
+            background: var(--text-primary);
             color: white;
-            border-color: #2a5298;
+            border-color: var(--text-primary);
         }
 
         /* To-Do 스타일 */
         .todo-summary {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
+            gap: 12px;
+            margin-bottom: 28px;
         }
 
         .summary-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 18px;
+            border-radius: var(--radius-md);
             text-align: center;
         }
 
-        .summary-card:nth-child(1) { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .summary-card:nth-child(2) { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-        .summary-card:nth-child(3) { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        .summary-card:nth-child(4) { background: linear-gradient(135deg, #30cfd0 0%, #330867 100%); }
+        .summary-card:nth-child(1) .summary-number { color: var(--text-primary); }
+        .summary-card:nth-child(2) .summary-number { color: var(--danger); }
+        .summary-card:nth-child(3) .summary-number { color: #b8862e; }
+        .summary-card:nth-child(4) .summary-number { color: var(--success); }
 
         .summary-number {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 700;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
+            letter-spacing: -0.02em;
         }
 
         .summary-label {
-            font-size: 14px;
-            opacity: 0.9;
+            font-size: 13px;
+            color: var(--text-secondary);
         }
 
         .todo-category {
@@ -444,32 +491,33 @@
         }
 
         .todo-category h3 {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             margin-bottom: 12px;
-            color: #2c3e50;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
         }
 
         .todo-item {
-            background: white;
-            border: 1px solid #e1e8ed;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            margin-bottom: 8px;
             display: flex;
             align-items: flex-start;
             gap: 12px;
-            transition: all 0.3s;
+            transition: border-color 0.2s;
         }
 
         .todo-item:hover {
-            border-color: #2a5298;
-            box-shadow: 0 2px 8px rgba(42, 82, 152, 0.1);
+            border-color: var(--accent);
         }
 
         .todo-item.completed {
-            opacity: 0.6;
-            background: #f8fafc;
+            opacity: 0.55;
+            background: var(--surface-muted);
         }
 
         .todo-item.completed .todo-text {
@@ -477,10 +525,11 @@
         }
 
         .todo-checkbox {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
             cursor: pointer;
             margin-top: 2px;
+            accent-color: var(--accent);
         }
 
         .todo-content {
@@ -488,36 +537,39 @@
         }
 
         .todo-text {
-            font-size: 15px;
-            color: #2c3e50;
+            font-size: 14px;
+            color: var(--text-primary);
             margin-bottom: 5px;
             font-weight: 500;
         }
 
         .todo-meta {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
-            font-size: 13px;
-            color: #5a6c7d;
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
         .todo-badge {
             display: inline-block;
             padding: 3px 8px;
-            background: #f0f3f7;
-            border-radius: 4px;
-            font-size: 12px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 11px;
         }
 
         .todo-badge.urgent {
-            background: #fee;
-            color: #e53e3e;
+            background: var(--danger-soft);
+            color: var(--danger);
+            border-color: transparent;
         }
 
         .todo-badge.auto {
-            background: #e6f7ff;
-            color: #1890ff;
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-color: transparent;
         }
 
         .todo-actions {
@@ -528,25 +580,25 @@
         .todo-action-btn {
             background: none;
             border: none;
-            color: #718096;
+            color: var(--text-tertiary);
             cursor: pointer;
-            font-size: 18px;
+            font-size: 16px;
             padding: 5px;
-            transition: color 0.3s;
+            transition: color 0.2s;
         }
 
         .todo-action-btn:hover {
-            color: #2a5298;
+            color: var(--accent);
         }
 
         .todo-action-btn.delete:hover {
-            color: #e53e3e;
+            color: var(--danger);
         }
 
         .empty-todo {
             text-align: center;
             padding: 30px;
-            color: #a0aec0;
+            color: var(--text-tertiary);
             font-style: italic;
         }
 
@@ -554,57 +606,58 @@
         .viz-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
+            gap: 12px;
             padding: 20px 0;
         }
 
         .viz-card {
-            background: white;
-            border: 2px solid #e1e8ed;
-            border-radius: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             padding: 15px;
             text-align: center;
-            transition: all 0.3s;
+            transition: border-color 0.2s, box-shadow 0.2s;
             cursor: pointer;
         }
 
         .viz-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border-color: #2a5298;
+            box-shadow: var(--shadow-md);
+            border-color: var(--accent);
         }
 
-        .viz-card.service-육군 { border-left: 4px solid #2a5298; }
-        .viz-card.service-해군 { border-left: 4px solid #1e88e5; }
-        .viz-card.service-공군 { border-left: 4px solid #43a047; }
-        .viz-card.service-해병대 { border-left: 4px solid #00897b; }
-        .viz-card.service-ADD { border-left: 4px solid #ff6f00; }
-        .viz-card.service-국과연 { border-left: 4px solid #ff6f00; }
-        .viz-card.service-국기연 { border-left: 4px solid #f57c00; }
-        .viz-card.service-기품원 { border-left: 4px solid #ef6c00; }
-        .viz-card.service-IITP { border-left: 4px solid #e65100; }
-        .viz-card.org-연구기관 { border-left: 4px solid #ff6f00; }
-        .viz-card.org-공무원 { border-left: 4px solid #7b1fa2; }
-        .viz-card.service-공무원 { border-left: 4px solid #9c27b0; }
-        .viz-card.service-방사청 { border-left: 4px solid #7b1fa2; }
+        .viz-card.service-육군,
+        .viz-card.service-해군,
+        .viz-card.service-공군,
+        .viz-card.service-해병대,
+        .viz-card.service-ADD,
+        .viz-card.service-국과연,
+        .viz-card.service-국기연,
+        .viz-card.service-기품원,
+        .viz-card.service-IITP,
+        .viz-card.org-연구기관,
+        .viz-card.org-공무원,
+        .viz-card.service-공무원,
+        .viz-card.service-방사청 {
+            border-left: 3px solid var(--accent);
+        }
 
         .viz-card-rank {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            color: #5a6c7d;
+            color: var(--text-tertiary);
             margin-bottom: 5px;
         }
 
         .viz-card-name {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
-            color: #1e3c72;
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
 
         .viz-card-info {
-            font-size: 13px;
-            color: #718096;
+            font-size: 12px;
+            color: var(--text-secondary);
             line-height: 1.6;
         }
 
@@ -613,26 +666,26 @@
         }
 
         .viz-group-header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: var(--text-primary);
             color: white;
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 15px;
+            padding: 14px 18px;
+            border-radius: var(--radius-md);
+            margin-bottom: 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .viz-group-title {
-            font-size: 18px;
+            font-size: 15px;
             font-weight: 600;
         }
 
         .viz-group-count {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15);
             padding: 4px 12px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         /* 시각화 컨트롤 스타일 */
@@ -651,18 +704,18 @@
         }
 
         .control-group label {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
-            color: #4a5568;
+            color: var(--text-secondary);
         }
 
         .control-group select {
             min-width: 200px;
             padding: 10px 12px;
-            border: 1.5px solid #e1e8ed;
-            border-radius: 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             font-size: 14px;
-            background: white;
+            background: var(--surface);
         }
 
         .control-buttons {
@@ -681,8 +734,8 @@
             top: 60px;
             left: 0;
             right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #2a5298, #1e88e5, #43a047);
+            height: 2px;
+            background: var(--border);
         }
 
         .viz-timeline-items {
@@ -698,36 +751,27 @@
         }
 
         .viz-timeline-marker {
-            width: 12px;
-            height: 12px;
-            background: #2a5298;
+            width: 10px;
+            height: 10px;
+            background: var(--accent);
             border-radius: 50%;
             margin: 0 auto 10px;
-            border: 3px solid white;
-            box-shadow: 0 0 0 2px #2a5298;
-        }
-
-        .viz-card-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            background: #f0f3f7;
-            border-radius: 4px;
-            font-size: 11px;
-            margin: 3px 2px;
-            font-weight: 500;
+            border: 3px solid var(--bg);
+            box-shadow: 0 0 0 1px var(--accent);
         }
 
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
+                padding-top: calc(15px + env(safe-area-inset-top));
             }
 
             header {
-                padding: 20px 15px;
+                padding: 20px 18px;
             }
 
             header h1 {
-                font-size: 22px;
+                font-size: 19px;
             }
 
             .form-grid {
@@ -746,7 +790,7 @@
             .viz-grid {
                 grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             }
-            
+
             .viz-timeline-item {
                 flex: 0 0 calc(50% - 8px);
             }
@@ -756,7 +800,7 @@
 <body>
     <header>
         <div class="container">
-            <h1>🎯 Tactical CRM</h1>
+            <h1>Tactical CRM</h1>
             <p>Defense Industry Customer Relationship Management</p>
         </div>
     </header>
@@ -771,18 +815,19 @@
             </button>
             <button class="tab" onclick="switchTab('add')">고객 추가</button>
             <button class="tab" onclick="switchTab('network')">관계도</button>
-            <button class="btn btn-secondary" onclick="exportData()" style="margin-left: auto;">📤 데이터 내보내기</button>
-            <button class="btn btn-secondary" onclick="openImportModal()">📥 데이터 가져오기</button>
-            <button class="btn btn-secondary" onclick="loadPromotionData()" style="background: #43a047; color: white;">⭐ 2025.11 진급자</button>
+            <button class="btn btn-secondary" onclick="openSyncModal()" style="margin-left: auto;">동기화</button>
+            <button class="btn btn-secondary" onclick="exportData()">데이터 내보내기</button>
+            <button class="btn btn-secondary" onclick="openImportModal()">데이터 가져오기</button>
+            <button class="btn btn-secondary" onclick="loadPromotionData()">2025.11 진급자</button>
         </div>
-        
+
         <!-- iCloud 동기화 상태 알림 -->
-        <div id="icloud-status-banner" style="display: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+        <div id="icloud-status-banner" style="display: none; background: var(--text-primary); color: white; padding: 12px 20px; border-radius: 10px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
             <div style="display: flex; align-items: center; gap: 10px;">
-                <span id="icloud-banner-icon" style="font-size: 20px;">☁️</span>
-                <span id="icloud-banner-text">iCloud 동기화 준비 중...</span>
+                <span id="icloud-banner-icon" style="font-size: 16px;">●</span>
+                <span id="icloud-banner-text">동기화 준비 중...</span>
             </div>
-            <button onclick="hideICloudBanner()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer;">닫기</button>
+            <button onclick="hideICloudBanner()" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 4px 12px; border-radius: 6px; cursor: pointer;">닫기</button>
         </div>
 
         <!-- 고객 목록 섹션 -->
@@ -1486,80 +1531,59 @@
         </div>
     </div>
 
-    <!-- iCloud 동기화 모달 -->
-    <div id="icloud-sync-modal" class="modal">
-        <div class="modal-content" style="max-width: 600px;">
+    <!-- 동기화 모달 -->
+    <div id="sync-modal" class="modal">
+        <div class="modal-content" style="max-width: 520px;">
             <div class="modal-header">
-                <h2>☁️ iCloud 동기화</h2>
-                <button class="close-btn" onclick="closeICloudSyncModal()">&times;</button>
+                <h2>기기 간 동기화</h2>
+                <button class="close-btn" onclick="closeSyncModal()">&times;</button>
             </div>
-            <div style="padding: 20px 0;">
-                <div id="icloud-setup-view" style="display: none;">
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">☁️</div>
-                        <h3 style="margin: 0 0 10px 0; font-size: 20px;">iCloud 자동 동기화 설정</h3>
-                        <p style="margin: 0; font-size: 14px; opacity: 0.95;">iPhone, iPad, Mac에서 데이터를 자동으로 동기화합니다</p>
+            <div style="padding: 10px 0;">
+                <div id="sync-setup-view" style="display: none;">
+                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px; line-height: 1.7;">
+                        아이폰과 아이패드에서 같은 데이터를 보려면 동기화 서버 연결 정보가 필요합니다.
+                        Supabase 프로젝트의 URL과 anon key를 입력해주세요.
+                    </p>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label>Supabase Project URL</label>
+                        <input type="text" id="sync-url-input" placeholder="https://xxxx.supabase.co">
                     </div>
-                    
-                    <div style="background: #f8fafc; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                        <h4 style="color: #1e3c72; margin-bottom: 15px;">🎯 작동 방식</h4>
-                        <ul style="margin: 0; padding-left: 20px; line-height: 2;">
-                            <li>데이터 변경 시 3초 후 자동으로 iCloud에 저장</li>
-                            <li>다른 기기에서 열 때 자동으로 최신 데이터 로드</li>
-                            <li>충돌 발생 시 자동으로 최신 버전 선택</li>
-                            <li>오프라인에서도 작동 (온라인 시 동기화)</li>
-                        </ul>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label>Supabase Anon Key</label>
+                        <input type="text" id="sync-key-input" placeholder="eyJhbGciOi...">
                     </div>
-                    
-                    <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <div style="font-weight: 600; color: #856404; margin-bottom: 8px;">📱 Safari 브라우저 필수</div>
-                        <div style="font-size: 14px; color: #856404;">
-                            iCloud 동기화는 Safari에서만 작동합니다.<br>
-                            Chrome, Edge에서는 지원되지 않습니다.
-                        </div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>동기화 그룹 이름 (같은 값을 쓰는 기기끼리 동기화됩니다)</label>
+                        <input type="text" id="sync-room-input" placeholder="예: my-crm" value="my-crm">
                     </div>
-                    
-                    <button class="btn btn-primary" onclick="setupICloudSync()" style="width: 100%; padding: 15px; font-size: 16px;">
-                        ☁️ iCloud 동기화 시작하기
+                    <button class="btn btn-primary" onclick="setupCloudSync()" style="width: 100%; padding: 13px;">
+                        동기화 연결하기
                     </button>
                 </div>
-                
-                <div id="icloud-status-view" style="display: none;">
-                    <div style="text-align: center; margin-bottom: 25px;">
-                        <div id="sync-status-icon" style="font-size: 64px; margin-bottom: 15px;">☁️</div>
-                        <div id="sync-status-text" style="font-size: 18px; font-weight: 600; color: #1e3c72; margin-bottom: 8px;">iCloud 동기화 활성화됨</div>
-                        <div id="sync-status-detail" style="font-size: 14px; color: #5a6c7d;">마지막 동기화: 방금 전</div>
+
+                <div id="sync-status-view" style="display: none;">
+                    <div style="text-align: center; margin-bottom: 22px;">
+                        <div id="sync-status-text" style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">동기화 활성화됨</div>
+                        <div id="sync-status-detail" style="font-size: 13px; color: var(--text-secondary);">마지막 동기화: 방금 전</div>
                     </div>
-                    
-                    <div style="background: #f8fafc; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+
+                    <div style="background: var(--surface-muted); border: 1px solid var(--border); padding: 18px; border-radius: var(--radius-md); margin-bottom: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                             <div style="text-align: center;">
-                                <div style="font-size: 24px; font-weight: 700; color: #667eea;" id="sync-customer-count">0</div>
-                                <div style="font-size: 13px; color: #5a6c7d;">고객 수</div>
+                                <div style="font-size: 22px; font-weight: 700; color: var(--text-primary);" id="sync-customer-count">0</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">고객 수</div>
                             </div>
                             <div style="text-align: center;">
-                                <div style="font-size: 24px; font-weight: 700; color: #667eea;" id="sync-file-size">0 KB</div>
-                                <div style="font-size: 13px; color: #5a6c7d;">파일 크기</div>
+                                <div style="font-size: 22px; font-weight: 700; color: var(--text-primary);" id="sync-room-name">-</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">동기화 그룹</div>
                             </div>
                         </div>
-                        <div style="font-size: 13px; color: #718096; text-align: center;">
-                            <div id="sync-devices">동기화된 기기: 이 기기</div>
-                        </div>
                     </div>
-                    
-                    <div style="display: grid; gap: 10px;">
-                        <button class="btn btn-primary" onclick="manualSyncToICloud()" style="width: 100%;">
-                            ↑ 지금 iCloud에 저장
-                        </button>
-                        <button class="btn btn-secondary" onclick="manualSyncFromICloud()" style="width: 100%;">
-                            ↓ iCloud에서 가져오기
-                        </button>
-                        <button class="btn btn-secondary" onclick="toggleAutoSync()" style="width: 100%;">
-                            <span id="auto-sync-toggle-text">🔄 자동 동기화: ON</span>
-                        </button>
-                        <button class="btn btn-danger" onclick="disableICloudSync()" style="width: 100%;">
-                            ❌ iCloud 동기화 해제
-                        </button>
+
+                    <div style="display: grid; gap: 8px;">
+                        <button class="btn btn-primary" onclick="manualSyncToCloud()" style="width: 100%;">지금 서버에 저장</button>
+                        <button class="btn btn-secondary" onclick="manualSyncFromCloud()" style="width: 100%;">서버에서 가져오기</button>
+                        <button class="btn btn-danger" onclick="disableCloudSync()" style="width: 100%;">동기화 해제</button>
                     </div>
                 </div>
             </div>
@@ -1610,6 +1634,7 @@
 
     <!-- 뉴스 전체화면 모달 -->
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script>
         // 데이터 저장소
         let customers = JSON.parse(localStorage.getItem('customers') || '[]');
@@ -3423,411 +3448,213 @@
                   '총 고객: ' + customers.length + '명');
         }
 
-        // iCloud 동기화 시스템
-        let iCloudEnabled = false;
-        let iCloudDirectoryHandle = null;
-        let iCloudFileHandle = null;
-        let autoSyncEnabled = true;
+        // ===== 클라우드 동기화 시스템 (Supabase) =====
+        let cloudClient = null;
+        let cloudConfig = null; // { url, key, room }
+        let cloudChannel = null;
         let syncTimeout = null;
         let lastSyncTime = null;
-        
-        // iCloud 동기화 초기화
-        async function initICloudSync() {
-            // localStorage에서 iCloud 설정 확인
-            const iCloudSettings = localStorage.getItem('iCloudSettings');
-            if (iCloudSettings) {
-                const settings = JSON.parse(iCloudSettings);
-                if (settings.enabled) {
-                    // File System Access API 지원 확인
-                    if ('showDirectoryPicker' in window) {
-                        iCloudEnabled = true;
-                        autoSyncEnabled = settings.autoSync !== false;
-                        document.getElementById('icloud-sync-btn').style.display = 'block';
-                        updateICloudStatus('ready', '동기화 준비됨');
-                        
-                        // 페이지 로드 시 자동으로 iCloud에서 데이터 확인
-                        await checkAndLoadFromICloud();
+        let isApplyingRemote = false;
+
+        function initCloudSync() {
+            const saved = localStorage.getItem('cloudSyncConfig');
+            if (!saved) return;
+            try {
+                cloudConfig = JSON.parse(saved);
+                connectCloud();
+            } catch (e) {
+                console.log('동기화 설정 로드 오류:', e);
+            }
+        }
+
+        function connectCloud() {
+            if (!cloudConfig || !cloudConfig.url || !cloudConfig.key || !cloudConfig.room) return;
+
+            cloudClient = supabase.createClient(cloudConfig.url, cloudConfig.key);
+
+            // 최초 접속 시 서버 데이터 확인 후 반영
+            pullFromCloud(true);
+
+            // 실시간 구독: 다른 기기에서 데이터가 바뀌면 자동으로 반영
+            if (cloudChannel) {
+                cloudClient.removeChannel(cloudChannel);
+            }
+            cloudChannel = cloudClient
+                .channel('crm-sync-' + cloudConfig.room)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'crm_sync',
+                    filter: 'room=eq.' + cloudConfig.room
+                }, function(payload) {
+                    if (isApplyingRemote) return;
+                    if (payload.new && payload.new.data) {
+                        applyRemoteData(payload.new.data);
+                        showSyncBanner('success', '다른 기기에서 변경된 데이터를 반영했습니다');
                     }
-                }
-            }
+                })
+                .subscribe();
+
+            updateSyncStatusUI('연결됨');
         }
-        
-        // iCloud에서 최신 데이터 확인 및 로드
-        async function checkAndLoadFromICloud() {
-            try {
-                // 이전에 저장된 디렉토리 핸들 확인
-                const handleData = localStorage.getItem('iCloudDirectoryHandle');
-                if (!handleData) return;
-                
-                // 권한 재요청
-                const granted = await requestICloudPermission();
-                if (!granted) return;
-                
-                const fileHandle = await iCloudDirectoryHandle.getFileHandle('defense-crm-data.json');
-                const file = await fileHandle.getFile();
-                const lastModified = file.lastModified;
-                
-                // localStorage의 마지막 동기화 시간과 비교
-                const lastSync = localStorage.getItem('iCloudLastSync');
-                if (!lastSync || lastModified > parseInt(lastSync)) {
-                    // iCloud 파일이 더 최신
-                    const shouldLoad = confirm('☁️ iCloud에서 더 최신 데이터를 발견했습니다.\n\n' +
-                        '파일 수정 시간: ' + new Date(lastModified).toLocaleString('ko-KR') + '\n\n' +
-                        'iCloud 데이터를 불러오시겠습니까?\n\n' +
-                        '※ 현재 기기의 데이터는 덮어쓰여집니다.');
-                    
-                    if (shouldLoad) {
-                        await loadFromICloudFile(file);
-                        showICloudBanner('success', '✅ iCloud에서 최신 데이터를 불러왔습니다');
-                    }
-                }
-            } catch (error) {
-                console.log('iCloud 확인 중 오류:', error);
-            }
-        }
-        
-        // iCloud 권한 재요청
-        async function requestICloudPermission() {
-            try {
-                const handleData = localStorage.getItem('iCloudDirectoryHandle');
-                if (!handleData) return false;
-                
-                // 저장된 핸들을 사용할 수 없으므로 다시 선택 필요
-                return false;
-            } catch (error) {
-                return false;
-            }
-        }
-        
-        // iCloud 모달 열기
-        function openICloudSyncModal() {
-            if (!iCloudEnabled) {
-                document.getElementById('icloud-setup-view').style.display = 'block';
-                document.getElementById('icloud-status-view').style.display = 'none';
-            } else {
-                document.getElementById('icloud-setup-view').style.display = 'none';
-                document.getElementById('icloud-status-view').style.display = 'block';
-                updateSyncStats();
-            }
-            document.getElementById('icloud-sync-modal').classList.add('active');
-        }
-        
-        function closeICloudSyncModal() {
-            document.getElementById('icloud-sync-modal').classList.remove('active');
-        }
-        
-        // iCloud 동기화 설정
-        async function setupICloudSync() {
-            // File System Access API 지원 확인
-            if (!('showDirectoryPicker' in window)) {
-                alert('❌ 죄송합니다.\n\n현재 브라우저에서는 iCloud 동기화를 지원하지 않습니다.\n\niCloud 동기화는 Safari 브라우저에서만 사용 가능합니다.\n\n※ Chrome, Edge에서는 지원되지 않습니다.');
-                return;
-            }
-            
-            try {
-                // 사용자에게 iCloud Drive 폴더 선택 요청
-                iCloudDirectoryHandle = await window.showDirectoryPicker({
-                    mode: 'readwrite',
-                    startIn: 'documents'
-                });
-                
-                // 설정 저장
-                iCloudEnabled = true;
-                autoSyncEnabled = true;
-                
-                localStorage.setItem('iCloudSettings', JSON.stringify({
-                    enabled: true,
-                    autoSync: true,
-                    setupDate: new Date().toISOString()
-                }));
-                
-                // 현재 데이터를 iCloud에 저장
-                await saveToICloud();
-                
-                // UI 업데이트
-                document.getElementById('icloud-sync-btn').style.display = 'block';
-                updateICloudStatus('success', '동기화됨');
-                
-                // 모달 뷰 전환
-                document.getElementById('icloud-setup-view').style.display = 'none';
-                document.getElementById('icloud-status-view').style.display = 'block';
-                updateSyncStats();
-                
-                showICloudBanner('success', '✅ iCloud 동기화가 활성화되었습니다!');
-                
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    console.log('사용자가 폴더 선택을 취소했습니다.');
-                } else {
-                    console.error('iCloud 설정 오류:', error);
-                    alert('iCloud 설정 중 오류가 발생했습니다.\n\n' + error.message);
-                }
-            }
-        }
-        
-        // iCloud에 저장
-        async function saveToICloud() {
-            if (!iCloudEnabled || !iCloudDirectoryHandle) return;
-            
-            try {
-                updateICloudStatus('syncing', '저장 중...');
-                
-                // 파일 핸들 가져오기 또는 생성
-                const fileHandle = await iCloudDirectoryHandle.getFileHandle('defense-crm-data.json', { create: true });
-                
-                // 데이터 준비
-                const data = {
-                    customers: customers,
-                    keyPositions: keyPositions,
-                    todos: todos,
-                    keyCustomerIds: keyCustomerIds,
-                    lastModified: new Date().toISOString(),
-                    version: '5.2'
-                };
-                
-                // 파일 쓰기
-                const writable = await fileHandle.createWritable();
-                await writable.write(JSON.stringify(data, null, 2));
-                await writable.close();
-                
-                // 마지막 동기화 시간 저장
-                lastSyncTime = new Date();
-                localStorage.setItem('iCloudLastSync', Date.now().toString());
-                
-                updateICloudStatus('success', '동기화됨');
-                updateSyncStats();
-                
-                console.log('✅ iCloud 저장 완료');
-                
-            } catch (error) {
-                console.error('iCloud 저장 오류:', error);
-                updateICloudStatus('error', '저장 실패');
-                
-                // 권한 문제인 경우
-                if (error.name === 'NotAllowedError') {
-                    alert('⚠️ iCloud 저장 권한이 필요합니다.\n\n다시 설정해주세요.');
-                    disableICloudSync();
-                }
-            }
-        }
-        
-        // iCloud에서 로드
-        async function loadFromICloud() {
-            if (!iCloudEnabled || !iCloudDirectoryHandle) return;
-            
-            try {
-                updateICloudStatus('syncing', '불러오는 중...');
-                
-                const fileHandle = await iCloudDirectoryHandle.getFileHandle('defense-crm-data.json');
-                const file = await fileHandle.getFile();
-                
-                await loadFromICloudFile(file);
-                
-            } catch (error) {
-                console.error('iCloud 로드 오류:', error);
-                updateICloudStatus('error', '로드 실패');
-                
-                if (error.name === 'NotFoundError') {
-                    alert('iCloud에 저장된 데이터가 없습니다.\n\n먼저 데이터를 저장해주세요.');
-                    updateICloudStatus('ready', '동기화 준비됨');
-                }
-            }
-        }
-        
-        // iCloud 파일에서 데이터 로드
-        async function loadFromICloudFile(file) {
-            const text = await file.text();
-            const data = JSON.parse(text);
-            
-            // 데이터 복원
+
+        function applyRemoteData(data) {
+            isApplyingRemote = true;
             if (data.customers) customers = data.customers;
             if (data.keyPositions) keyPositions = data.keyPositions;
             if (data.todos) todos = data.todos;
             if (data.keyCustomerIds) keyCustomerIds = data.keyCustomerIds;
-            
-            // localStorage에도 저장
+
             localStorage.setItem('customers', JSON.stringify(customers));
             localStorage.setItem('keyPositions', JSON.stringify(keyPositions));
             localStorage.setItem('todos', JSON.stringify(todos));
             localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
-            localStorage.setItem('iCloudLastSync', Date.now().toString());
-            
-            // 화면 새로고침
+
             renderCustomerList();
             renderKeyCustomers();
             renderTodoList();
-            
+
             lastSyncTime = new Date();
-            updateICloudStatus('success', '동기화됨');
-            updateSyncStats();
-            
-            console.log('✅ iCloud 데이터 로드 완료');
+            updateSyncStatusUI('동기화됨');
+            isApplyingRemote = false;
         }
-        
-        // 수동 동기화 - iCloud에 저장
-        async function manualSyncToICloud() {
-            if (!iCloudDirectoryHandle) {
-                // 폴더 다시 선택
-                await setupICloudSync();
+
+        async function pullFromCloud(silent) {
+            if (!cloudClient || !cloudConfig) return;
+            const { data, error } = await cloudClient
+                .from('crm_sync')
+                .select('data')
+                .eq('room', cloudConfig.room)
+                .maybeSingle();
+
+            if (error) {
+                console.log('동기화 불러오기 오류:', error.message);
                 return;
             }
-            
-            await saveToICloud();
-            showICloudBanner('success', '✅ iCloud에 저장되었습니다');
-        }
-        
-        // 수동 동기화 - iCloud에서 가져오기
-        async function manualSyncFromICloud() {
-            if (!iCloudDirectoryHandle) {
-                alert('먼저 iCloud 동기화를 설정해주세요.');
-                return;
-            }
-            
-            if (!confirm('⚠️ iCloud의 데이터로 덮어쓰시겠습니까?\n\n현재 기기의 데이터는 사라집니다.')) {
-                return;
-            }
-            
-            await loadFromICloud();
-            showICloudBanner('success', '✅ iCloud에서 데이터를 가져왔습니다');
-        }
-        
-        // 자동 동기화 토글
-        function toggleAutoSync() {
-            autoSyncEnabled = !autoSyncEnabled;
-            
-            const settings = JSON.parse(localStorage.getItem('iCloudSettings') || '{}');
-            settings.autoSync = autoSyncEnabled;
-            localStorage.setItem('iCloudSettings', JSON.stringify(settings));
-            
-            document.getElementById('auto-sync-toggle-text').textContent = 
-                autoSyncEnabled ? '🔄 자동 동기화: ON' : '⏸️ 자동 동기화: OFF';
-            
-            alert(autoSyncEnabled ? 
-                '✅ 자동 동기화가 활성화되었습니다.\n\n데이터 변경 시 3초 후 자동으로 iCloud에 저장됩니다.' :
-                '⏸️ 자동 동기화가 비활성화되었습니다.\n\n수동으로 저장 버튼을 눌러야 합니다.');
-        }
-        
-        // iCloud 동기화 해제
-        function disableICloudSync() {
-            if (!confirm('⚠️ iCloud 동기화를 해제하시겠습니까?\n\n※ iCloud의 데이터는 삭제되지 않으며,\n이 기기에서만 동기화가 해제됩니다.')) {
-                return;
-            }
-            
-            iCloudEnabled = false;
-            iCloudDirectoryHandle = null;
-            autoSyncEnabled = false;
-            
-            localStorage.removeItem('iCloudSettings');
-            localStorage.removeItem('iCloudDirectoryHandle');
-            localStorage.removeItem('iCloudLastSync');
-            
-            document.getElementById('icloud-sync-btn').style.display = 'none';
-            closeICloudSyncModal();
-            
-            showICloudBanner('info', 'iCloud 동기화가 해제되었습니다');
-        }
-        
-        // 자동 동기화 트리거 (데이터 변경 시 호출)
-        function triggerAutoSync() {
-            if (!iCloudEnabled || !autoSyncEnabled) return;
-            
-            // 기존 타이머 취소
-            if (syncTimeout) {
-                clearTimeout(syncTimeout);
-            }
-            
-            // 3초 후 저장
-            syncTimeout = setTimeout(async function() {
-                await saveToICloud();
-            }, 3000);
-            
-            updateICloudStatus('pending', '저장 대기 중...');
-        }
-        
-        // iCloud 상태 업데이트
-        function updateICloudStatus(status, text) {
-            const icon = document.getElementById('icloud-status-icon');
-            const statusIcon = document.getElementById('sync-status-icon');
-            const statusText = document.getElementById('sync-status-text');
-            const statusDetail = document.getElementById('sync-status-detail');
-            
-            switch(status) {
-                case 'syncing':
-                    if (icon) icon.textContent = '🔄';
-                    if (statusIcon) statusIcon.textContent = '🔄';
-                    if (statusText) statusText.textContent = text;
-                    break;
-                case 'success':
-                    if (icon) icon.textContent = '☁️';
-                    if (statusIcon) statusIcon.textContent = '✅';
-                    if (statusText) statusText.textContent = 'iCloud 동기화 완료';
-                    if (statusDetail) {
-                        statusDetail.textContent = '마지막 동기화: ' + 
-                            (lastSyncTime ? lastSyncTime.toLocaleString('ko-KR') : '방금 전');
-                    }
-                    break;
-                case 'error':
-                    if (icon) icon.textContent = '⚠️';
-                    if (statusIcon) statusIcon.textContent = '⚠️';
-                    if (statusText) statusText.textContent = text;
-                    break;
-                case 'pending':
-                    if (icon) icon.textContent = '⏳';
-                    if (statusText) statusText.textContent = text;
-                    break;
-                case 'ready':
-                    if (icon) icon.textContent = '☁️';
-                    if (statusText) statusText.textContent = text;
-                    break;
+            if (data && data.data) {
+                applyRemoteData(data.data);
+                if (!silent) showSyncBanner('success', '서버에서 데이터를 가져왔습니다');
             }
         }
-        
-        // 동기화 통계 업데이트
-        function updateSyncStats() {
-            const customerCount = document.getElementById('sync-customer-count');
-            const fileSize = document.getElementById('sync-file-size');
-            
-            if (customerCount) {
-                customerCount.textContent = customers.length;
-            }
-            
-            if (fileSize) {
-                const data = JSON.stringify({
+
+        async function pushToCloud() {
+            if (!cloudClient || !cloudConfig) return;
+            isApplyingRemote = true; // 내 저장으로 인한 realtime 이벤트는 무시
+            const payload = {
+                room: cloudConfig.room,
+                data: {
                     customers: customers,
                     keyPositions: keyPositions,
-                    todos: todos
-                });
-                const sizeKB = Math.round(data.length / 1024);
-                fileSize.textContent = sizeKB + ' KB';
+                    todos: todos,
+                    keyCustomerIds: keyCustomerIds
+                },
+                updated_at: new Date().toISOString()
+            };
+            const { error } = await cloudClient.from('crm_sync').upsert(payload, { onConflict: 'room' });
+            isApplyingRemote = false;
+            if (error) {
+                console.log('동기화 저장 오류:', error.message);
+                updateSyncStatusUI('저장 실패');
+                return;
             }
+            lastSyncTime = new Date();
+            updateSyncStatusUI('동기화됨');
         }
-        
-        // iCloud 배너 표시
-        function showICloudBanner(type, text) {
-            const banner = document.getElementById('icloud-status-banner');
-            const icon = document.getElementById('icloud-banner-icon');
-            const textEl = document.getElementById('icloud-banner-text');
-            
-            if (type === 'success') {
-                icon.textContent = '✅';
-                banner.style.background = 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
-            } else if (type === 'error') {
-                icon.textContent = '⚠️';
-                banner.style.background = 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
+
+        // 데이터 변경 시 호출 (2초 후 자동 저장)
+        function triggerAutoSync() {
+            if (!cloudClient) return;
+            if (syncTimeout) clearTimeout(syncTimeout);
+            updateSyncStatusUI('저장 대기 중...');
+            syncTimeout = setTimeout(function() {
+                pushToCloud();
+            }, 2000);
+        }
+
+        function openSyncModal() {
+            document.getElementById('sync-modal').classList.add('active');
+            if (cloudClient) {
+                document.getElementById('sync-setup-view').style.display = 'none';
+                document.getElementById('sync-status-view').style.display = 'block';
+                document.getElementById('sync-customer-count').textContent = customers.length;
+                document.getElementById('sync-room-name').textContent = cloudConfig.room;
             } else {
-                icon.textContent = 'ℹ️';
-                banner.style.background = 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
+                document.getElementById('sync-setup-view').style.display = 'block';
+                document.getElementById('sync-status-view').style.display = 'none';
             }
-            
-            textEl.textContent = text;
-            banner.style.display = 'flex';
-            
-            // 5초 후 자동 숨김
-            setTimeout(function() {
-                banner.style.display = 'none';
-            }, 5000);
         }
-        
+
+        function closeSyncModal() {
+            document.getElementById('sync-modal').classList.remove('active');
+        }
+
+        async function setupCloudSync() {
+            const url = document.getElementById('sync-url-input').value.trim();
+            const key = document.getElementById('sync-key-input').value.trim();
+            const room = document.getElementById('sync-room-input').value.trim();
+
+            if (!url || !key || !room) {
+                alert('Supabase URL, Anon Key, 동기화 그룹 이름을 모두 입력해주세요.');
+                return;
+            }
+
+            cloudConfig = { url: url, key: key, room: room };
+            localStorage.setItem('cloudSyncConfig', JSON.stringify(cloudConfig));
+            connectCloud();
+
+            // 최초 연결 시 현재 기기의 데이터를 서버에 업로드
+            await pushToCloud();
+
+            document.getElementById('sync-setup-view').style.display = 'none';
+            document.getElementById('sync-status-view').style.display = 'block';
+            document.getElementById('sync-customer-count').textContent = customers.length;
+            document.getElementById('sync-room-name').textContent = room;
+
+            showSyncBanner('success', '동기화가 연결되었습니다');
+        }
+
+        async function manualSyncToCloud() {
+            await pushToCloud();
+            showSyncBanner('success', '서버에 저장되었습니다');
+        }
+
+        async function manualSyncFromCloud() {
+            if (!confirm('서버의 데이터로 덮어쓰시겠습니까?\n\n현재 기기의 저장되지 않은 변경사항은 사라집니다.')) return;
+            await pullFromCloud(false);
+        }
+
+        function disableCloudSync() {
+            if (!confirm('동기화를 해제하시겠습니까?\n\n서버의 데이터는 삭제되지 않으며, 이 기기에서만 연결이 해제됩니다.')) return;
+
+            if (cloudChannel && cloudClient) cloudClient.removeChannel(cloudChannel);
+            cloudClient = null;
+            cloudConfig = null;
+            cloudChannel = null;
+
+            localStorage.removeItem('cloudSyncConfig');
+            closeSyncModal();
+            showSyncBanner('info', '동기화가 해제되었습니다');
+        }
+
+        function updateSyncStatusUI(text) {
+            const statusText = document.getElementById('sync-status-text');
+            const statusDetail = document.getElementById('sync-status-detail');
+            if (statusText) statusText.textContent = text;
+            if (statusDetail) {
+                statusDetail.textContent = '마지막 동기화: ' + (lastSyncTime ? lastSyncTime.toLocaleString('ko-KR') : '-');
+            }
+        }
+
+        function showSyncBanner(type, text) {
+            const banner = document.getElementById('icloud-status-banner');
+            const textEl = document.getElementById('icloud-banner-text');
+            if (!banner || !textEl) return;
+            textEl.textContent = text;
+            banner.style.background = type === 'error' ? 'var(--danger)' : 'var(--text-primary)';
+            banner.style.display = 'flex';
+            setTimeout(function() { banner.style.display = 'none'; }, 4000);
+        }
+
         function hideICloudBanner() {
             document.getElementById('icloud-status-banner').style.display = 'none';
         }
@@ -3835,9 +3662,9 @@
         // 초기 렌더링
         renderCustomerList();
         checkAndUpdateTodos();
-        
-        // iCloud 동기화 초기화
-        initICloudSync();
+
+        // 클라우드 동기화 초기화
+        initCloudSync();
         
         // Todo 체크박스 및 버튼 이벤트 위임
         document.addEventListener('click', function(e) {
@@ -3876,6 +3703,15 @@
         setInterval(function() {
             checkAndUpdateTodos();
         }, 60000);
+
+        // PWA: Service Worker 등록 (오프라인 지원)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js').catch(function(err) {
+                    console.log('Service Worker 등록 실패:', err);
+                });
+            });
+        }
     </script>
 </body>
 </html>
