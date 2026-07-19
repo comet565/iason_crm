@@ -379,7 +379,13 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            position: sticky;
+            top: -28px;
+            margin: -28px -28px 20px -28px;
+            padding: 20px 28px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            z-index: 5;
         }
 
         .modal-header h2 {
@@ -2428,7 +2434,9 @@
             document.getElementById('contact-log-note').value = '';
             renderContactLog();
 
-            document.getElementById('edit-modal').classList.add('active');
+            const editModal = document.getElementById('edit-modal');
+            editModal.classList.add('active');
+            editModal.querySelector('.modal-content').scrollTop = 0;
         }
 
         // 연락 이력 렌더링 (현재 수정 중인 고객 기준)
