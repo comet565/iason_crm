@@ -925,11 +925,13 @@
                                 <option value="해병대">해병대</option>
                             </optgroup>
                             <optgroup label="정출연">
-                                <option value="ADD">ADD(국과연)</option>
-                                <option value="국기연">국기연</option>
-                                <option value="기품원">기품원</option>
+                                <option value="ADD">ADD(국방과학연구소)</option>
+                                <option value="국기연">국기연(국방기술진흥연구소)</option>
+                                <option value="기품원">기품원(국방기술품질원)</option>
+                                <option value="KIDA">KIDA(한국국방연구원)</option>
                                 <option value="IITP">IITP</option>
                                 <option value="ETRI">ETRI</option>
+                                <option value="KARI">KARI(한국항공우주연구원)</option>
                             </optgroup>
                             <optgroup label="기타">
                                 <option value="공무원">공무원</option>
@@ -1106,11 +1108,13 @@
                                     <option value="해병대">해병대</option>
                                 </optgroup>
                                 <optgroup label="정출연">
-                                    <option value="ADD">ADD(국과연)</option>
-                                    <option value="국기연">국기연</option>
-                                    <option value="기품원">기품원</option>
+                                    <option value="ADD">ADD(국방과학연구소)</option>
+                                    <option value="국기연">국기연(국방기술진흥연구소)</option>
+                                    <option value="기품원">기품원(국방기술품질원)</option>
+                                    <option value="KIDA">KIDA(한국국방연구원)</option>
                                     <option value="IITP">IITP</option>
                                     <option value="ETRI">ETRI</option>
+                                    <option value="KARI">KARI(한국항공우주연구원)</option>
                                     <option value="기타연구기관">기타 연구기관</option>
                                 </optgroup>
                                 <optgroup label="기타">
@@ -1224,10 +1228,13 @@
                                 <option value="공군">공군만</option>
                             </optgroup>
                             <optgroup label="연구기관">
-                                <option value="ADD">ADD(국과연)만</option>
+                                <option value="ADD">ADD(국방과학연구소)만</option>
                                 <option value="국기연">국기연만</option>
                                 <option value="기품원">기품원만</option>
+                                <option value="KIDA">KIDA(한국국방연구원)만</option>
                                 <option value="IITP">IITP만</option>
+                                <option value="ETRI">ETRI만</option>
+                                <option value="KARI">KARI만</option>
                             </optgroup>
                             <optgroup label="기타">
                                 <option value="공무원">공무원만</option>
@@ -1315,11 +1322,13 @@
                                 <option value="해병대">해병대</option>
                             </optgroup>
                             <optgroup label="정출연">
-                                <option value="ADD">ADD(국과연)</option>
-                                <option value="국기연">국기연</option>
-                                <option value="기품원">기품원</option>
+                                <option value="ADD">ADD(국방과학연구소)</option>
+                                <option value="국기연">국기연(국방기술진흥연구소)</option>
+                                <option value="기품원">기품원(국방기술품질원)</option>
+                                <option value="KIDA">KIDA(한국국방연구원)</option>
                                 <option value="IITP">IITP</option>
                                 <option value="ETRI">ETRI</option>
+                                <option value="KARI">KARI(한국항공우주연구원)</option>
                                 <option value="기타연구기관">기타 연구기관</option>
                             </optgroup>
                             <optgroup label="기타">
@@ -2334,8 +2343,8 @@
             if (currentKeyFilter !== 'all') {
                 keyCustomers = keyCustomers.filter(function(c) {
                     if (currentKeyFilter === '연구기관') {
-                        return ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'IITP', 'ETRI', '기타연구기관'].includes(c.service) ||
-                               ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'IITP', 'ETRI', '기타연구기관'].includes(c.organization);
+                        return ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '기타연구기관'].includes(c.service) ||
+                               ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '기타연구기관'].includes(c.organization);
                     } else if (currentKeyFilter === '공무원') {
                         return c.service === '공무원' || c.organization === '공무원';
                     } else if (currentKeyFilter === '기업') {
@@ -2797,8 +2806,10 @@
             if (service === 'ADD' || service === '국과연' || service === 'ADD(국과연)') return '#ff6f00';
             if (service === '국기연') return '#f57c00';
             if (service === '기품원') return '#ef6c00';
+            if (service === 'KIDA') return '#d84315';
             if (service === 'IITP') return '#e65100';
             if (service === 'ETRI') return '#ff8a65';
+            if (service === 'KARI') return '#ff7043';
             // 공공기관
             if (service === '공무원') return '#9c27b0';
             if (service === '방사청') return '#7b1fa2';
@@ -2876,11 +2887,11 @@
                 return;
             }
             
-            var services = ['육군', '해군', '공군', '해병대', 'ADD', '국기연', '기품원', 'IITP', '공무원', '방사청', '기타'];
+            var services = ['육군', '해군', '공군', '해병대', 'ADD', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '공무원', '방사청', '기타'];
             var html = '';
-            
+
             services.forEach(function(service) {
-                var serviceCustomers = filteredCustomers.filter(function(c) { 
+                var serviceCustomers = filteredCustomers.filter(function(c) {
                     if (service === '기타') {
                         return !c.service || !services.slice(0, -1).includes(c.service);
                     }
@@ -2888,14 +2899,13 @@
                     if (service === 'ADD') {
                         return c.service === 'ADD' || c.service === '국과연' || c.service === 'ADD(국과연)';
                     }
-                    return c.service === service; 
+                    return c.service === service;
                 });
-                
+
                 if (serviceCustomers.length > 0) {
-                    var bgColor = getServiceColor(service);
-                    var displayName = service === 'ADD' ? 'ADD(국과연)' : service;
+                    var displayName = service === 'ADD' ? 'ADD(국방과학연구소)' : service;
                     html += '<div class="viz-group">';
-                    html += '<div class="viz-group-header" style="background: ' + bgColor + ';">';
+                    html += '<div class="viz-group-header">';
                     html += '<div class="viz-group-title">' + displayName + '</div>';
                     html += '<div class="viz-group-count">' + serviceCustomers.length + '명</div>';
                     html += '</div>';
@@ -2932,7 +2942,7 @@
                 },
                 '정부출연 연구기관': {
                     color: '#f57c00',
-                    services: ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'IITP', 'ETRI', 'KARI', '기타연구기관']
+                    services: ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '기타연구기관']
                 },
                 '공공기관': {
                     color: '#7b1fa2',
