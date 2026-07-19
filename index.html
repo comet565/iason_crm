@@ -899,7 +899,7 @@
         <!-- 고객 목록 섹션 -->
         <div id="customers-section" class="content-section active">
             <div class="card">
-                <h2>등록된 고객</h2>
+                <h2>등록된 고객 <span id="customer-count-label" style="color: var(--text-secondary); font-weight: 500;"></span></h2>
                 <div class="search-box">
                     <input type="text" id="customer-search" placeholder="이름, 직책, 기관, 기수, 학교, 전공, 비고 등으로 검색..." onkeyup="searchCustomers()">
                     <button class="btn btn-secondary" onclick="clearSearch()">검색 초기화</button>
@@ -2257,6 +2257,9 @@
             }
 
             displayCustomers = sortCustomers(displayCustomers, sortBy);
+
+            var countLabel = document.getElementById('customer-count-label');
+            if (countLabel) countLabel.textContent = '(' + displayCustomers.length + '명)';
 
             if (displayCustomers.length === 0) {
                 container.innerHTML = '<div class="empty-state"><h3>' + (searchTerm ? '검색 결과가 없습니다' : '등록된 고객이 없습니다') + '</h3><p>' + (searchTerm ? '다른 검색어를 입력해주세요' : '새 고객을 추가해주세요') + '</p></div>';
