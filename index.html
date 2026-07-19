@@ -1226,6 +1226,7 @@
                                 <option value="육군">육군만</option>
                                 <option value="해군">해군만</option>
                                 <option value="공군">공군만</option>
+                                <option value="해병대">해병대만</option>
                             </optgroup>
                             <optgroup label="연구기관">
                                 <option value="ADD">ADD(국방과학연구소)만</option>
@@ -1238,7 +1239,8 @@
                             </optgroup>
                             <optgroup label="기타">
                                 <option value="공무원">공무원만</option>
-                                <option value="방사청">방사청만</option>
+                                <option value="방위사업청">방위사업청만</option>
+                                <option value="기업">기업만</option>
                                 <option value="중장">중장만</option>
                                 <option value="핵심고객">핵심고객만</option>
                             </optgroup>
@@ -2777,22 +2779,30 @@
             if (filter === 'all') return customers;
             if (filter === '중장') return customers.filter(function(c) { return c.rank === '중장'; });
             if (filter === '핵심고객') return customers.filter(function(c) { return keyCustomerIds.includes(c.id); });
-            
+
             // ADD와 국과연은 같은 것으로 처리
             if (filter === 'ADD') {
-                return customers.filter(function(c) { 
-                    return c.service === 'ADD' || 
-                           c.service === '국과연' || 
+                return customers.filter(function(c) {
+                    return c.service === 'ADD' ||
+                           c.service === '국과연' ||
                            c.service === 'ADD(국과연)' ||
-                           c.organization === 'ADD' || 
+                           c.organization === 'ADD' ||
                            c.organization === '국과연' ||
                            c.organization === 'ADD(국과연)';
                 });
             }
-            
+
+            // 방위사업청은 소속구분(service) 선택지가 아니라 기관명(organization)에 자유
+            // 입력되는 값이라, 정확히 일치하는 값이 아니라 포함 여부로 찾아야 한다
+            if (filter === '방위사업청') {
+                return customers.filter(function(c) {
+                    return c.organization && (c.organization.includes('방위사업청') || c.organization.includes('방사청'));
+                });
+            }
+
             // 특정 조직 필터 (service 또는 organization 필드에서 찾기)
-            return customers.filter(function(c) { 
-                return c.service === filter || c.organization === filter; 
+            return customers.filter(function(c) {
+                return c.service === filter || c.organization === filter;
             });
         }
         
