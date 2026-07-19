@@ -1556,7 +1556,7 @@
                         <label>동기화 그룹 이름 (같은 값을 쓰는 기기끼리 동기화됩니다)</label>
                         <input type="text" id="sync-room-input" placeholder="예: my-crm" value="my-crm">
                     </div>
-                    <button class="btn btn-primary" onclick="setupCloudSync()" style="width: 100%; padding: 13px;">
+                    <button id="sync-connect-btn" class="btn btn-primary" onclick="setupCloudSync()" style="width: 100%; padding: 13px;">
                         동기화 연결하기
                     </button>
                 </div>
@@ -3598,19 +3598,54 @@
                 return;
             }
 
-            cloudConfig = { url: url, key: key, room: room };
-            localStorage.setItem('cloudSyncConfig', JSON.stringify(cloudConfig));
-            connectCloud();
+            if (typeof supabase === 'undefined') {
+                alert('❌ 동기화 라이브러리를 불러오지 못했습니다.\n\n인터넷 연결을 확인하고 앱을 새로고침한 뒤 다시 시도해주세요.');
+                return;
+            }
 
-            // 최초 연결 시 현재 기기의 데이터를 서버에 업로드
-            await pushToCloud();
+            const connectBtn = document.getElementById('sync-connect-btn');
+            const originalText = connectBtn ? connectBtn.textContent : '';
+            if (connectBtn) {
+                connectBtn.disabled = true;
+                connectBtn.textContent = '연결 중...';
+            }
 
-            document.getElementById('sync-setup-view').style.display = 'none';
-            document.getElementById('sync-status-view').style.display = 'block';
-            document.getElementById('sync-customer-count').textContent = customers.length;
-            document.getElementById('sync-room-name').textContent = room;
+            try {
+                cloudConfig = { url: url, key: key, room: room };
+                connectCloud();
 
-            showSyncBanner('success', '동기화가 연결되었습니다');
+                // 최초 연결 시 현재 기기의 데이터를 서버에 업로드 (실패하면 예외를 던져서 아래 catch로 이동)
+                const payload = {
+                    room: cloudConfig.room,
+                    data: { customers: customers, keyPositions: keyPositions, todos: todos, keyCustomerIds: keyCustomerIds },
+                    updated_at: new Date().toISOString()
+                };
+                const { error } = await cloudClient.from('crm_sync').upsert(payload, { onConflict: 'room' });
+                if (error) throw error;
+
+                localStorage.setItem('cloudSyncConfig', JSON.stringify(cloudConfig));
+                lastSyncTime = new Date();
+
+                document.getElementById('sync-setup-view').style.display = 'none';
+                document.getElementById('sync-status-view').style.display = 'block';
+                document.getElementById('sync-customer-count').textContent = customers.length;
+                document.getElementById('sync-room-name').textContent = room;
+                updateSyncStatusUI('동기화됨');
+
+                showSyncBanner('success', '동기화가 연결되었습니다');
+            } catch (err) {
+                console.error('동기화 연결 오류:', err);
+                cloudClient = null;
+                cloudConfig = null;
+                alert('❌ 동기화 연결에 실패했습니다.\n\n' +
+                    (err && err.message ? err.message : '알 수 없는 오류') +
+                    '\n\nSupabase URL/Key가 정확한지, SQL 테이블 생성을 완료했는지 확인해주세요.');
+            } finally {
+                if (connectBtn) {
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = originalText;
+                }
+            }
         }
 
         async function manualSyncToCloud() {
