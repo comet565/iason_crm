@@ -3501,12 +3501,10 @@
         function applyRemoteData(data) {
             isApplyingRemote = true;
             if (data.customers) customers = data.customers;
-            if (data.keyPositions) keyPositions = data.keyPositions;
             if (data.todos) todos = data.todos;
             if (data.keyCustomerIds) keyCustomerIds = data.keyCustomerIds;
 
             localStorage.setItem('customers', JSON.stringify(customers));
-            localStorage.setItem('keyPositions', JSON.stringify(keyPositions));
             localStorage.setItem('todos', JSON.stringify(todos));
             localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
 
@@ -3544,7 +3542,6 @@
                 room: cloudConfig.room,
                 data: {
                     customers: customers,
-                    keyPositions: keyPositions,
                     todos: todos,
                     keyCustomerIds: keyCustomerIds
                 },
@@ -3617,7 +3614,7 @@
                 // 최초 연결 시 현재 기기의 데이터를 서버에 업로드 (실패하면 예외를 던져서 아래 catch로 이동)
                 const payload = {
                     room: cloudConfig.room,
-                    data: { customers: customers, keyPositions: keyPositions, todos: todos, keyCustomerIds: keyCustomerIds },
+                    data: { customers: customers, todos: todos, keyCustomerIds: keyCustomerIds },
                     updated_at: new Date().toISOString()
                 };
                 const { error } = await cloudClient.from('crm_sync').upsert(payload, { onConflict: 'room' });
