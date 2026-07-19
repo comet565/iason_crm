@@ -1154,6 +1154,10 @@
                             <label>부임/진급일자</label>
                             <input type="date" id="promotion-date">
                         </div>
+                        <div class="form-group">
+                            <label>생일</label>
+                            <input type="date" id="birthday">
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>직장 주소</label>
@@ -1359,6 +1363,10 @@
                         <label>부임/진급일자</label>
                         <input type="date" id="edit-promotion-date">
                     </div>
+                    <div class="form-group">
+                        <label>생일</label>
+                        <input type="date" id="edit-birthday">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>직장 주소</label>
@@ -1380,7 +1388,19 @@
                     <label>비고</label>
                     <textarea id="edit-notes"></textarea>
                 </div>
-                
+
+                <div class="form-group">
+                    <label>연락 이력</label>
+                    <div style="background: var(--surface-muted); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                            <input type="date" id="contact-log-date" style="flex: 0 0 150px;">
+                            <input type="text" id="contact-log-note" placeholder="메모 (예: 전화 통화, 방문 등)" style="flex: 1;">
+                            <button type="button" class="btn btn-secondary" onclick="addContactLogEntry()" style="white-space: nowrap;">기록 추가</button>
+                        </div>
+                        <div id="contact-log-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+                    </div>
+                </div>
+
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn btn-primary" style="flex: 1;">저장</button>
                     <button type="button" class="btn btn-danger" onclick="deleteCustomer()" style="flex: 1;">삭제</button>
@@ -2047,10 +2067,12 @@
                 workAddress: '',
                 department: '',
                 promotionDate: '',
+                birthday: '',
                 family: '',
                 teamMembers: [],
                 relations: '',
                 notes: 'VCF 파일에서 가져옴',
+                contactLog: [],
                 createdAt: new Date().toISOString(),
                 isKeyCustomer: false
             };
@@ -2080,12 +2102,14 @@
                 position: document.getElementById('position').value,
                 department: document.getElementById('department').value,
                 promotionDate: document.getElementById('promotion-date').value,
+                birthday: document.getElementById('birthday').value,
                 family: document.getElementById('family').value,
                 relations: document.getElementById('relations').value,
                 notes: document.getElementById('notes').value,
+                contactLog: [],
                 createdAt: new Date().toISOString()
             };
-            
+
             customers.push(customer);
             localStorage.setItem('customers', JSON.stringify(customers));
             
@@ -2190,11 +2214,15 @@
                 // 핵심 고객 여부 확인
                 var isKey = keyCustomerIds.includes(customer.id);
                 var keyBadge = isKey ? '<span class="viz-card-badge" style="background: #e53e3e; color: white; margin-left: 8px;">⭐</span>' : '';
-                
-                return '<div class="customer-card"><h3>' + 
-                    (customer.rank ? customer.rank + ' ' : '') + 
-                    customer.name + 
-                    (customer.age ? ' (' + customer.age + '세)' : '') + 
+                var daysSinceContact = getDaysSinceLastContact(customer);
+                var contactLabel = daysSinceContact === null ? '연락 기록 없음' :
+                    (daysSinceContact === 0 ? '오늘 연락' : daysSinceContact + '일 전 연락');
+                var contactColor = (daysSinceContact === null || daysSinceContact > 60) ? 'var(--danger)' : 'var(--text-secondary)';
+
+                return '<div class="customer-card"><h3>' +
+                    (customer.rank ? customer.rank + ' ' : '') +
+                    customer.name +
+                    (customer.age ? ' (' + customer.age + '세)' : '') +
                     keyBadge +
                     '</h3><div class="customer-info">' +
                     (customer.service ? '<span><strong>•</strong> ' + customer.service + '</span>' : '') +
@@ -2203,6 +2231,7 @@
                     (customer.organization ? '<span><strong>•</strong> ' + customer.organization + '</span>' : '') +
                     (customer.militaryType && customer.classNumber ? '<span><strong>•</strong> ' + customer.militaryType + ' ' + customer.classNumber + '기</span>' : '') +
                     (customer.phone ? '<span><strong>•</strong> ' + customer.phone + '</span>' : '') +
+                    '<span style="color: ' + contactColor + ';"><strong>•</strong> ' + contactLabel + '</span>' +
                     '</div><div class="action-buttons">' +
                     '<button class="btn btn-primary" onclick="editCustomer(' + customer.id + ')">상세보기/수정</button>' +
                     (isKey ? 
@@ -2390,13 +2419,101 @@
             document.getElementById('edit-position').value = customer.position || '';
             document.getElementById('edit-department').value = customer.department || '';
             document.getElementById('edit-promotion-date').value = customer.promotionDate || '';
+            document.getElementById('edit-birthday').value = customer.birthday || '';
             document.getElementById('edit-family').value = customer.family || '';
             document.getElementById('edit-relations').value = customer.relations || '';
             document.getElementById('edit-notes').value = customer.notes || '';
-            
+
+            document.getElementById('contact-log-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('contact-log-note').value = '';
+            renderContactLog();
+
             document.getElementById('edit-modal').classList.add('active');
         }
-        
+
+        // 연락 이력 렌더링 (현재 수정 중인 고객 기준)
+        function renderContactLog() {
+            const container = document.getElementById('contact-log-list');
+            const customer = customers.find(c => c.id === currentEditId);
+            const log = (customer && customer.contactLog) || [];
+
+            if (log.length === 0) {
+                container.innerHTML = '<div style="font-size: 13px; color: var(--text-tertiary);">아직 기록된 연락 이력이 없습니다.</div>';
+                return;
+            }
+
+            const sorted = log.slice().sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+            container.innerHTML = sorted.map(function(entry, i) {
+                const daysAgo = Math.floor((new Date() - new Date(entry.date)) / (1000 * 60 * 60 * 24));
+                const daysLabel = daysAgo === 0 ? '오늘' : daysAgo + '일 전';
+                return '<div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px;">' +
+                    '<span><strong>' + entry.date + '</strong> (' + daysLabel + ')' + (entry.note ? ' — ' + entry.note : '') + '</span>' +
+                    '<button type="button" onclick="removeContactLogEntry(' + i + ')" style="background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 16px; padding: 2px 6px;">&times;</button>' +
+                    '</div>';
+            }).join('');
+        }
+
+        function addContactLogEntry() {
+            const date = document.getElementById('contact-log-date').value;
+            const note = document.getElementById('contact-log-note').value.trim();
+            if (!date) {
+                alert('연락 날짜를 선택해주세요.');
+                return;
+            }
+
+            const index = customers.findIndex(c => c.id === currentEditId);
+            if (index === -1) return;
+
+            if (!Array.isArray(customers[index].contactLog)) customers[index].contactLog = [];
+            customers[index].contactLog.push({ date: date, note: note });
+
+            localStorage.setItem('customers', JSON.stringify(customers));
+            triggerAutoSync();
+
+            document.getElementById('contact-log-note').value = '';
+            renderContactLog();
+        }
+
+        function removeContactLogEntry(sortedIndex) {
+            const index = customers.findIndex(c => c.id === currentEditId);
+            if (index === -1) return;
+
+            const log = customers[index].contactLog || [];
+            const sorted = log.slice().sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+            const entryToRemove = sorted[sortedIndex];
+            const originalIndex = log.indexOf(entryToRemove);
+            if (originalIndex !== -1) log.splice(originalIndex, 1);
+
+            localStorage.setItem('customers', JSON.stringify(customers));
+            triggerAutoSync();
+            renderContactLog();
+        }
+
+        // 마지막 연락일로부터 며칠 지났는지 (기록 없으면 null)
+        function getDaysSinceLastContact(customer) {
+            if (!customer.contactLog || customer.contactLog.length === 0) return null;
+            const latest = customer.contactLog.reduce(function(latestDate, entry) {
+                const d = new Date(entry.date);
+                return d > latestDate ? d : latestDate;
+            }, new Date(0));
+            return Math.floor((new Date() - latest) / (1000 * 60 * 60 * 24));
+        }
+
+        // 다음 생일까지 며칠 남았는지 (매년 반복되므로 연도는 무시, 월/일만 사용)
+        function getDaysUntilNextBirthday(birthdayStr, today) {
+            var parts = birthdayStr.split('-');
+            if (parts.length !== 3) return null;
+            var month = parseInt(parts[1], 10) - 1;
+            var day = parseInt(parts[2], 10);
+
+            var todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            var next = new Date(today.getFullYear(), month, day);
+            if (next < todayMidnight) {
+                next = new Date(today.getFullYear() + 1, month, day);
+            }
+            return Math.round((next - todayMidnight) / (1000 * 60 * 60 * 24));
+        }
+
         // 고객 수정 저장
         document.getElementById('edit-form').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -2422,6 +2539,7 @@
                 position: document.getElementById('edit-position').value,
                 department: document.getElementById('edit-department').value,
                 promotionDate: document.getElementById('edit-promotion-date').value,
+                birthday: document.getElementById('edit-birthday').value,
                 family: document.getElementById('edit-family').value,
                 relations: document.getElementById('edit-relations').value,
                 notes: document.getElementById('edit-notes').value
@@ -2633,7 +2751,7 @@
             if (!customers || customers.length === 0) return [];
             if (filter === 'all') return customers;
             if (filter === '중장') return customers.filter(function(c) { return c.rank === '중장'; });
-            if (filter === '핵심고객') return customers.filter(function(c) { return c.isKeyCustomer; });
+            if (filter === '핵심고객') return customers.filter(function(c) { return keyCustomerIds.includes(c.id); });
             
             // ADD와 국과연은 같은 것으로 처리
             if (filter === 'ADD') {
@@ -2705,7 +2823,7 @@
                 html += '<div style="margin-top: 8px; font-size: 12px; color: #5a6c7d;">' + customer.position + '</div>';
             }
             
-            if (customer.isKeyCustomer) {
+            if (keyCustomerIds.includes(customer.id)) {
                 html += '<span class="viz-card-badge" style="background: #e53e3e; color: white; margin-top: 5px;">⭐ 핵심</span>';
             }
             
@@ -3315,7 +3433,7 @@
             
             // 핵심 고객 중 신규 부임자 파악 (3개월 이내)
             customers.forEach(function(customer) {
-                if (customer.isKeyCustomer && customer.promotionDate) {
+                if (keyCustomerIds.includes(customer.id) && customer.promotionDate) {
                     var appointmentDate = new Date(customer.promotionDate);
                     var monthsDiff = (today - appointmentDate) / (1000 * 60 * 60 * 24 * 30);
                     
@@ -3334,7 +3452,7 @@
             
             // 연락처 미확보 핵심 고객
             customers.forEach(function(customer) {
-                if (customer.isKeyCustomer && !customer.phone) {
+                if (keyCustomerIds.includes(customer.id) && !customer.phone) {
                     suggestions.push({
                         task: customer.name + ' 연락처 확보 필요',
                         customerId: customer.id,
@@ -3344,7 +3462,37 @@
                     });
                 }
             });
-            
+
+            // 생일 7일 이내 (매년 돌아오는 날짜라 연도는 무시하고 월/일만 비교)
+            customers.forEach(function(customer) {
+                if (!customer.birthday) return;
+                var daysUntil = getDaysUntilNextBirthday(customer.birthday, today);
+                if (daysUntil !== null && daysUntil <= 7) {
+                    suggestions.push({
+                        task: customer.name + ' 생일 챙기기',
+                        customerId: customer.id,
+                        priority: daysUntil <= 1 ? 'urgent' : 'high',
+                        reason: daysUntil === 0 ? '오늘 생일' : 'D-' + daysUntil,
+                        type: 'birthday'
+                    });
+                }
+            });
+
+            // 핵심 고객 중 오래 연락 안 한 사람 (60일 이상, 또는 기록 자체가 없음)
+            customers.forEach(function(customer) {
+                if (!keyCustomerIds.includes(customer.id)) return;
+                var daysSince = getDaysSinceLastContact(customer);
+                if (daysSince === null || daysSince >= 60) {
+                    suggestions.push({
+                        task: customer.name + '님과 연락한지 오래됐어요',
+                        customerId: customer.id,
+                        priority: 'normal',
+                        reason: daysSince === null ? '연락 기록 없음' : daysSince + '일간 연락 없음',
+                        type: 'stale-contact'
+                    });
+                }
+            });
+
             var container = document.getElementById('suggestions-list');
             if (suggestions.length === 0) {
                 container.innerHTML = '<div class="empty-todo">모든 항목이 양호합니다 👍</div>';
