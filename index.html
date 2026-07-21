@@ -882,7 +882,6 @@
                     <button onclick="closeMoreMenu(); openSyncModal();">동기화</button>
                     <button onclick="closeMoreMenu(); exportData();">데이터 내보내기</button>
                     <button onclick="closeMoreMenu(); openImportModal();">데이터 가져오기</button>
-                    <button onclick="closeMoreMenu(); loadPromotionData();">2025.11 진급자</button>
                 </div>
             </div>
         </div>
@@ -3810,87 +3809,6 @@
             } else {
                 badge.style.display = 'none';
             }
-        }
-
-        // 2025년 11월 진급자 데이터 자동 입력
-        function loadPromotionData() {
-            if (!confirm('2025년 11월 중장 진급자 21명의 데이터를 추가하시겠습니까?\n\n이미 등록된 인원은 자동으로 건너뜁니다.')) return;
-            
-            const promotionData = [
-                // 육군
-                { name: "한기성", rank: "중장", service: "육군", militaryType: "학군", classNumber: "33", position: "1군단장", promotionDate: "2025-11-18" },
-                { name: "정유수", rank: "중장", service: "육군", militaryType: "육사", classNumber: "51", position: "2군단장", promotionDate: "2025-11-18" },
-                { name: "이상렬", rank: "중장", service: "육군", militaryType: "학군", classNumber: "31", position: "3군단장", promotionDate: "2025-11-18" },
-                { name: "이일용", rank: "중장", service: "육군", militaryType: "육사", classNumber: "51", position: "5군단장", promotionDate: "2025-11-18" },
-                { name: "최성진", rank: "중장", service: "육군", militaryType: "육사", classNumber: "49", position: "7군단장", promotionDate: "2025-11-18" },
-                { name: "이임수", rank: "중장", service: "육군", militaryType: "육사", classNumber: "50", position: "수도군단장", promotionDate: "2025-11-18" },
-                { name: "박성제", rank: "중장", service: "육군", militaryType: "학사", classNumber: "17", position: "특수전사령관", promotionDate: "2025-11-18" },
-                { name: "어창준", rank: "중장", service: "육군", militaryType: "육사", classNumber: "49", position: "수도방위사령관", promotionDate: "2025-11-18" },
-                { name: "권혁동", rank: "중장", service: "육군", militaryType: "육사", classNumber: "50", position: "미사일전략사령관", promotionDate: "2025-11-18" },
-                { name: "강현우", rank: "중장", service: "육군", militaryType: "육사", classNumber: "50", position: "합참 작전본부장", promotionDate: "2025-11-18" },
-                { name: "김종묵", rank: "중장", service: "육군", militaryType: "학군", classNumber: "32", position: "지작사 참모장", promotionDate: "2025-11-18" },
-                { name: "강관범", rank: "중장", service: "육군", militaryType: "육사", classNumber: "49", position: "육군교육사령관", promotionDate: "2025-11-18" },
-                { name: "박춘식", rank: "중장", service: "육군", militaryType: "육사", classNumber: "49", position: "육군군수사령관", promotionDate: "2025-11-18" },
-                { name: "최장식", rank: "중장", service: "육군", militaryType: "학군", classNumber: "30", position: "육군참모차장", promotionDate: "2025-11-18" },
-                
-                // 해군
-                { name: "김경률", rank: "중장", service: "해군", militaryType: "해사", classNumber: "47", position: "해군 작전사령관", promotionDate: "2025-11-18" },
-                { name: "박규백", rank: "중장", service: "해군", militaryType: "해사", classNumber: "47", position: "해사교장", promotionDate: "2025-11-18" },
-                { name: "곽광섭", rank: "중장", service: "해군", militaryType: "해사", classNumber: "48", position: "해군참모차장", promotionDate: "2025-11-18" },
-                { name: "강동구", rank: "중장", service: "해군", militaryType: "해사", classNumber: "48", position: "합참 전략기획본부장", promotionDate: "2025-11-18" },
-                
-                // 공군
-                { name: "권영민", rank: "중장", service: "공군", militaryType: "공사", classNumber: "42", position: "공군교육사령관", promotionDate: "2025-11-18" },
-                { name: "김준호", rank: "중장", service: "공군", militaryType: "공사", classNumber: "41", position: "국방정보본부장", promotionDate: "2025-11-18" },
-                { name: "구상모", rank: "중장", service: "공군", militaryType: "공사", classNumber: "43", position: "합참 군수지원본부장", promotionDate: "2025-11-18" }
-            ];
-            
-            let addedCount = 0;
-            let skippedCount = 0;
-            
-            promotionData.forEach(function(person) {
-                // 중복 체크 (이름과 기수로)
-                const exists = customers.find(function(c) {
-                    return c.name === person.name && c.classNumber === person.classNumber;
-                });
-                
-                if (!exists) {
-                    const customer = {
-                        id: Date.now() + Math.random(), // 고유 ID 생성
-                        name: person.name,
-                        rank: person.rank,
-                        service: person.service,
-                        militaryType: person.militaryType,
-                        classNumber: person.classNumber,
-                        position: person.position,
-                        promotionDate: person.promotionDate,
-                        phone: "",
-                        school: "",
-                        organization: "",
-                        department: "",
-                        workAddress: "",
-                        homeAddress: "",
-                        family: "",
-                        relations: "",
-                        notes: "2025년 11월 18일 중장 진급",
-                        createdAt: new Date().toISOString()
-                    };
-                    
-                    customers.push(customer);
-                    addedCount++;
-                } else {
-                    skippedCount++;
-                }
-            });
-            
-            localStorage.setItem('customers', JSON.stringify(customers));
-            renderCustomerList();
-            checkAndUpdateTodos();
-            
-            alert('✅ 진급자 데이터 처리 완료!\n\n' +
-                  '추가: ' + addedCount + '명\n' +
-                  '건너뜀(중복): ' + skippedCount + '명\n\n' +
-                  '총 고객: ' + customers.length + '명');
         }
 
         // ===== 클라우드 동기화 시스템 (Supabase, 로그인 기반) =====
