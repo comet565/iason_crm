@@ -2576,7 +2576,10 @@
         document.getElementById('edit-form').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const id = parseInt(document.getElementById('edit-id').value);
+            // parseInt는 소수점 이하를 잘라내는데, 연락처 가져오기로 등록된 고객은
+            // id가 Date.now() + Math.random()처럼 소수점이 있는 값이라 잘리면
+            // 원래 id와 더 이상 일치하지 않아 저장이 엉뚱한 곳으로 들어간다.
+            const id = parseFloat(document.getElementById('edit-id').value);
             const index = customers.findIndex(c => c.id === id);
             
             customers[index] = {
@@ -2620,7 +2623,7 @@
         function deleteCustomer() {
             if (!confirm('정말 이 고객을 삭제하시겠습니까?')) return;
             
-            const id = parseInt(document.getElementById('edit-id').value);
+            const id = parseFloat(document.getElementById('edit-id').value);
             customers = customers.filter(c => c.id !== id);
             
             // 핵심 고객 목록에서도 제거
@@ -3746,8 +3749,8 @@
             
             var todoData = {
                 task: document.getElementById('todo-task').value,
-                customerId: document.getElementById('todo-customer').value ? 
-                           parseInt(document.getElementById('todo-customer').value) : null,
+                customerId: document.getElementById('todo-customer').value ?
+                           parseFloat(document.getElementById('todo-customer').value) : null,
                 deadline: document.getElementById('todo-deadline').value,
                 priority: document.getElementById('todo-priority').value,
                 notes: document.getElementById('todo-notes').value,
