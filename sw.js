@@ -1,8 +1,10 @@
-const CACHE_NAME = 'tactical-crm-v2';
+const CACHE_NAME = 'tactical-crm-v3';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.json',
+  './car.html',
+  './car-manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
 ];
@@ -33,6 +35,13 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
         return response;
       })
-      .catch(() => caches.match(event.request).then((cached) => cached || caches.match('./index.html')))
+      .catch(() =>
+        caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          // 오프라인에서 페이지를 못 찾으면 해당 앱의 시작 화면으로 되돌린다.
+          const fallback = event.request.url.includes('car') ? './car.html' : './index.html';
+          return caches.match(fallback);
+        })
+      )
   );
 });
