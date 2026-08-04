@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>차량 사용 예약</title>
+
+    <!-- PWA: 홈 화면 설치 및 아이폰/안드로이드 대응 -->
+    <link rel="manifest" href="./car-manifest.json">
+    <meta name="theme-color" content="#1d1d1f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="차량 예약">
+    <link rel="apple-touch-icon" href="./icons/icon-180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./icons/icon-32.png">
+
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --surface: #ffffff;
+            --surface-muted: #fafafa;
+            --border: #e5e5ea;
+            --text-primary: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --text-tertiary: #a1a1a6;
+            --accent: #3a5ba9;
+            --danger: #d64545;
+            --success: #2f9e5b;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 7px;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 560px;
+            margin: 0 auto;
+            padding: 16px;
+            padding-top: calc(16px + env(safe-area-inset-top));
+            padding-bottom: calc(90px + env(safe-area-inset-bottom));
+        }
+
+        header {
+            background: var(--text-primary);
+            color: white;
+            padding: 18px 20px;
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        header .title { flex: 1; min-width: 0; }
+        header h1 { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+        header p { opacity: 0.6; font-size: 12px; margin-top: 2px; }
+
+        .sync-pill {
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.08);
+            color: white;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 7px 11px;
+            border-radius: 999px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-tertiary); flex-shrink: 0; }
+        .sync-dot.on { background: #4ade80; }
+        .sync-dot.wait { background: #fbbf24; }
+        .sync-dot.err { background: #f87171; }
+
+        /* ===== 주 이동 ===== */
+        .week-nav {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 16px 0 12px;
+        }
+        .week-nav > button:not(.btn-today) {
+            width: 38px; height: 38px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            color: var(--text-primary);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .week-nav button:active { background: var(--surface-muted); }
+        .week-label { flex: 1; text-align: center; min-width: 0; }
+        .week-label strong { display: block; font-size: 15px; font-weight: 600; }
+        .week-label span { font-size: 11px; color: var(--text-secondary); }
+        .btn-today {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 0 12px; height: 38px;
+            font-size: 13px; font-weight: 500;
+            font-family: inherit;
+            color: var(--accent);
+            cursor: pointer;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        /* ===== 요약 ===== */
+        .summary {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .summary-card {
+            flex: 1;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+        }
+        .summary-card .swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+        .summary-card .who {
+            font-size: 13px; font-weight: 600;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .summary-card .cnt { margin-left: auto; font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+
+        /* ===== 요일 목록 ===== */
+        .days { display: flex; flex-direction: column; gap: 8px; }
+
+        .day {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            box-shadow: var(--shadow-sm);
+        }
+        .day.today { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(58,91,169,0.12); }
+        .day.past { opacity: 0.55; }
+
+        .day-head { display: flex; align-items: baseline; gap: 8px; }
+        .day-name { font-size: 15px; font-weight: 600; width: 22px; flex-shrink: 0; }
+        .day.sat .day-name { color: #3a5ba9; }
+        .day.sun .day-name { color: var(--danger); }
+        .day-date { font-size: 12px; color: var(--text-secondary); }
+        .day-today-tag {
+            font-size: 10px; font-weight: 600; color: white;
+            background: var(--accent); border-radius: 4px; padding: 1px 5px;
+        }
+        .day-memo-btn {
+            margin-left: auto;
+            border: none; background: none;
+            font-size: 12px; color: var(--text-tertiary);
+            cursor: pointer; padding: 2px 4px;
+            max-width: 55%;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+            text-align: right;
+        }
+        .day-memo-btn.has { color: var(--text-secondary); }
+
+        .slots { display: flex; gap: 6px; margin-top: 8px; }
+
+        .slot {
+            flex: 1;
+            border: 1px dashed var(--border);
+            background: var(--surface-muted);
+            border-radius: var(--radius-sm);
+            padding: 11px 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            transition: transform 0.08s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            min-width: 0;
+        }
+        .slot:active { transform: scale(0.97); }
+        .slot .slot-label {
+            font-size: 10px; font-weight: 500; letter-spacing: 0.02em;
+            color: var(--text-tertiary);
+        }
+        .slot .slot-who {
+            max-width: 100%;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .slot.taken { border-style: solid; border-color: transparent; color: white; }
+        .slot.taken .slot-label { color: rgba(255,255,255,0.75); }
+
+        /* ===== 하단 액션 ===== */
+        .actions { display: flex; gap: 8px; margin-top: 14px; }
+        .btn-ghost {
+            flex: 1;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius-md);
+            padding: 11px 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .btn-ghost:active { background: var(--surface-muted); }
+
+        .hint {
+            margin-top: 14px;
+            font-size: 12px;
+            color: var(--text-tertiary);
+            text-align: center;
+            line-height: 1.7;
+        }
+
+        /* ===== 토스트 ===== */
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: calc(20px + env(safe-area-inset-bottom));
+            transform: translateX(-50%) translateY(20px);
+            background: var(--text-primary);
+            color: white;
+            border-radius: 999px;
+            padding: 10px 12px 10px 18px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: var(--shadow-md);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            z-index: 200;
+            max-width: calc(100vw - 32px);
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+        .toast span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .toast button {
+            border: none;
+            background: rgba(255,255,255,0.16);
+            color: white;
+            border-radius: 999px;
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        /* ===== 모달 ===== */
+        .modal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            z-index: 300;
+        }
+        .modal.active { display: flex; }
+        .modal-box {
+            background: var(--surface);
+            width: 100%;
+            max-width: 560px;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            padding: 20px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            max-height: 88vh;
+            overflow-y: auto;
+        }
+        @media (min-width: 600px) {
+            .modal { align-items: center; }
+            .modal-box { border-radius: var(--radius-lg); }
+        }
+        .modal-head { display: flex; align-items: center; margin-bottom: 16px; }
+        .modal-head h2 { font-size: 17px; font-weight: 600; flex: 1; }
+        .modal-close {
+            border: none; background: var(--surface-muted);
+            width: 30px; height: 30px; border-radius: 50%;
+            font-size: 15px; color: var(--text-secondary); cursor: pointer;
+        }
+
+        .field { margin-bottom: 14px; }
+        .field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .field input[type="text"], .field input[type="password"] {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 11px 12px;
+            font-size: 15px;
+            font-family: inherit;
+            background: var(--surface);
+            color: var(--text-primary);
+        }
+        .field input:focus { outline: none; border-color: var(--accent); }
+
+        .name-row { display: flex; gap: 8px; align-items: center; }
+        .name-row input[type="color"] {
+            width: 44px; height: 44px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: none;
+            padding: 3px;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .seg { display: flex; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+        .seg button {
+            flex: 1;
+            border: none;
+            background: var(--surface);
+            padding: 11px 8px;
+            font-size: 13px;
+            font-family: inherit;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        .seg button.on { background: var(--accent); color: white; font-weight: 600; }
+
+        .btn-primary {
+            width: 100%;
+            border: none;
+            background: var(--accent);
+            color: white;
+            border-radius: var(--radius-md);
+            padding: 13px;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+        }
+        .btn-primary:disabled { opacity: 0.5; }
+        .btn-line {
+            width: 100%;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn-line.danger { color: var(--danger); border-color: rgba(214,69,69,0.3); }
+
+        .divider { height: 1px; background: var(--border); margin: 20px 0 16px; }
+        .section-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; }
+
+        .status-box {
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        .status-box .row { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; }
+        .status-box .row span:first-child { color: var(--text-secondary); flex-shrink: 0; }
+        .status-box .row span:last-child {
+            font-weight: 500; text-align: right;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        details.guide {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            margin-top: 10px;
+            background: var(--surface-muted);
+        }
+        details.guide summary {
+            font-size: 13px; font-weight: 500;
+            color: var(--accent); cursor: pointer;
+        }
+        details.guide ol { margin: 12px 0 0 18px; font-size: 12.5px; color: var(--text-secondary); line-height: 1.8; }
+        details.guide pre {
+            background: var(--text-primary);
+            color: #e5e5ea;
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            font-size: 11px;
+            line-height: 1.6;
+            overflow-x: auto;
+            margin-top: 8px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="title">
+                <h1>차량 사용 예약</h1>
+                <p id="header-sub">한 대를 겹치지 않게 나눠 쓰기</p>
+            </div>
+            <button class="sync-pill" onclick="openSettings()">
+                <span class="sync-dot" id="sync-dot"></span>
+                <span id="sync-text">설정</span>
+            </button>
+        </header>
+
+        <div class="week-nav">
+            <button onclick="moveWeek(-1)" aria-label="이전 주">‹</button>
+            <div class="week-label">
+                <strong id="week-range">–</strong>
+                <span id="week-rel"></span>
+            </div>
+            <button onclick="moveWeek(1)" aria-label="다음 주">›</button>
+            <button class="btn-today" onclick="goToday()">오늘</button>
+        </div>
+
+        <div class="summary" id="summary"></div>
+
+        <div class="days" id="days"></div>
+
+        <div class="actions">
+            <button class="btn-ghost" onclick="copyPrevWeek()">지난주 그대로 복사</button>
+            <button class="btn-ghost" onclick="clearWeek()">이번 주 비우기</button>
+        </div>
+
+        <p class="hint" id="hint"></p>
+    </div>
+
+    <div class="toast" id="toast">
+        <span id="toast-text"></span>
+        <button id="toast-action" onclick="undoLast()">되돌리기</button>
+    </div>
+
+    <!-- 설정 -->
+    <div class="modal" id="settings-modal" onclick="if(event.target===this) closeSettings()">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h2>설정</h2>
+                <button class="modal-close" onclick="closeSettings()">✕</button>
+            </div>
+
+            <div class="section-title">사용자</div>
+            <div class="field">
+                <label>첫 번째 사용자</label>
+                <div class="name-row">
+                    <input type="text" id="p1-name" maxlength="10" onchange="savePerson('p1')">
+                    <input type="color" id="p1-color" onchange="savePerson('p1')">
+                </div>
+            </div>
+            <div class="field">
+                <label>두 번째 사용자</label>
+                <div class="name-row">
+                    <input type="text" id="p2-name" maxlength="10" onchange="savePerson('p2')">
+                    <input type="color" id="p2-color" onchange="savePerson('p2')">
+                </div>
+            </div>
+
+            <div class="field">
+                <label>예약 단위</label>
+                <div class="seg">
+                    <button id="mode-day" onclick="setMode('day')">하루 종일</button>
+                    <button id="mode-half" onclick="setMode('half')">오전 · 오후</button>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+            <div class="section-title">공유 &amp; 동기화</div>
+
+            <div id="sync-connected" style="display:none">
+                <div class="status-box">
+                    <div class="row"><span>상태</span><span id="st-state">연결됨</span></div>
+                    <div class="row"><span>공유 방 ID</span><span id="st-room">–</span></div>
+                    <div class="row"><span>마지막 동기화</span><span id="st-time">–</span></div>
+                </div>
+                <button class="btn-primary" onclick="copyShareLink()">📱 와이프에게 보낼 링크 복사</button>
+                <button class="btn-line" onclick="manualSync()">지금 동기화</button>
+                <button class="btn-line danger" onclick="disconnectSync()">연결 해제</button>
+                <p class="hint" style="margin-top:12px;text-align:left">
+                    복사한 링크를 카톡 등으로 보내고, 상대방이 그 링크를 한 번만 열면 바로 같은 예약표를 보게 됩니다.
+                    (링크에 접속 정보가 들어 있으니 두 사람끼리만 공유하세요.)
+                </p>
+            </div>
+
+            <div id="sync-setup">
+                <p class="hint" style="text-align:left;margin:0 0 12px">
+                    지금은 이 기기에만 저장됩니다. Supabase에 연결하면 두 사람 폰에서 같은 예약표를 실시간으로 보게 됩니다.
+                </p>
+                <div class="field">
+                    <label>Supabase URL</label>
+                    <input type="text" id="sync-url" placeholder="https://xxxx.supabase.co" autocapitalize="off" autocorrect="off" spellcheck="false">
+                </div>
+                <div class="field">
+                    <label>Anon Key</label>
+                    <input type="password" id="sync-key" placeholder="eyJhbGci..." autocapitalize="off" autocorrect="off" spellcheck="false">
+                </div>
+                <div class="field">
+                    <label>공유 방 ID <span style="color:var(--text-tertiary);font-weight:400">— 비워두면 새로 만듭니다</span></label>
+                    <input type="text" id="sync-room" placeholder="예전에 쓰던 방 ID가 있으면 입력" autocapitalize="off" autocorrect="off" spellcheck="false">
+                </div>
+                <button class="btn-primary" id="sync-connect-btn" onclick="connectSync()">연결하기</button>
+
+                <details class="guide">
+                    <summary>Supabase 준비 방법 (처음 한 번만)</summary>
+                    <ol>
+                        <li>supabase.com 에서 프로젝트를 만듭니다 (무료).</li>
+                        <li>Project Settings → API 에서 <b>URL</b>과 <b>anon public key</b>를 복사해 위에 넣습니다.</li>
+                        <li>SQL Editor 에 아래를 붙여넣고 실행합니다.</li>
+                    </ol>
+                    <pre>create table if not exists car_schedule (
+  room text primary key,
+  data jsonb not null,
+  updated_at timestamptz default now()
+);
+
+alter table car_schedule enable row level security;
+
+create policy "car schedule access"
+  on car_schedule for all
+  using (true) with check (true);
+
+alter publication supabase_realtime
+  add table car_schedule;</pre>
+                    <ol start="4">
+                        <li>다시 이 화면에서 <b>연결하기</b>를 누르면 끝입니다.</li>
+                    </ol>
+                </details>
+            </div>
+
+            <div class="divider"></div>
+            <div class="section-title">데이터</div>
+            <button class="btn-line danger" onclick="resetAll()">전체 예약 삭제</button>
+        </div>
+    </div>
+
+    <!-- 메모 -->
+    <div class="modal" id="memo-modal" onclick="if(event.target===this) closeMemo()">
+        <div class="modal-box">
+            <div class="modal-head">
+                <h2 id="memo-title">메모</h2>
+                <button class="modal-close" onclick="closeMemo()">✕</button>
+            </div>
+            <div class="field">
+                <input type="text" id="memo-input" maxlength="40" placeholder="예: 출장, 장보기, 아이 픽업">
+            </div>
+            <button class="btn-primary" onclick="saveMemo()">저장</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script>
+    /* =====================================================================
+       차량 사용 예약
+       - 한 칸(하루 또는 오전/오후)에는 반드시 한 사람만 들어가므로 중복 예약이
+         구조적으로 불가능하다.
+       - 저장은 항상 localStorage에 하고, Supabase 연결 시 추가로 서버에 올린다.
+       - 두 사람이 동시에 고칠 수 있으므로 데이터는 "필드별 마지막 수정 시각"을
+         함께 들고 다니며, 서버 값과 합칠 때 더 최근 것을 남긴다.
+       ===================================================================== */
+
+    var STORAGE_KEY = 'carSchedule';
+    var SYNC_KEY = 'carSyncConfig';
+    var KEEP_WEEKS = 12; // 이보다 오래된 지난 예약은 정리한다
+    var DAY_NAMES = ['월', '화', '수', '목', '금', '토', '일'];
+
+    function nowMs() { return Date.now(); }
+
+    function defaultData() {
+        var t = nowMs();
+        return {
+            v: 1,
+            people: {
+                p1: { name: '나', color: '#3a5ba9', at: t },
+                p2: { name: '와이프', color: '#c2557a', at: t }
+            },
+            mode: { value: 'day', at: t },
+            days: {}
+        };
+    }
+
+    var data = defaultData();
+    var weekOffset = 0;
+    var lastChange = null; // 되돌리기용
+
+    /* ===== 날짜 유틸 (모두 로컬 시간 기준) ===== */
+    function dateKey(d) {
+        var m = d.getMonth() + 1, day = d.getDate();
+        return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
+    }
+    function startOfWeek(d) {
+        var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        var w = (x.getDay() + 6) % 7; // 월요일 시작
+        x.setDate(x.getDate() - w);
+        return x;
+    }
+    function addDays(d, n) {
+        var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        x.setDate(x.getDate() + n);
+        return x;
+    }
+    function weekStart(offset) { return addDays(startOfWeek(new Date()), offset * 7); }
+
+    /* ===== 저장 / 불러오기 ===== */
+    function loadLocal() {
+        try {
+            var raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            var parsed = JSON.parse(raw);
+            if (parsed && parsed.days) data = normalize(parsed);
+        } catch (e) {
+            console.log('저장된 예약을 읽지 못했습니다:', e);
+        }
+    }
+
+    // 예전 버전이나 손상된 값이 들어와도 화면이 깨지지 않도록 형태를 맞춰준다.
+    function normalize(d) {
+        var base = defaultData();
+        if (!d || typeof d !== 'object') return base;
+        var out = base;
+        if (d.people) {
+            ['p1', 'p2'].forEach(function (k) {
+                var p = d.people[k];
+                if (p && typeof p === 'object') {
+                    out.people[k] = {
+                        name: typeof p.name === 'string' && p.name ? p.name : base.people[k].name,
+                        color: typeof p.color === 'string' && p.color ? p.color : base.people[k].color,
+                        at: typeof p.at === 'number' ? p.at : 0
+                    };
+                }
+            });
+        }
+        if (d.mode && (d.mode.value === 'day' || d.mode.value === 'half')) {
+            out.mode = { value: d.mode.value, at: typeof d.mode.at === 'number' ? d.mode.at : 0 };
+        }
+        out.days = {};
+        if (d.days && typeof d.days === 'object') {
+            Object.keys(d.days).forEach(function (key) {
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return;
+                var src = d.days[key] || {};
+                var day = {};
+                ['am', 'pm'].forEach(function (slot) {
+                    var s = src[slot];
+                    if (s && typeof s === 'object' && (s.who === 'p1' || s.who === 'p2' || s.who === null)) {
+                        day[slot] = { who: s.who, at: typeof s.at === 'number' ? s.at : 0 };
+                    }
+                });
+                if (src.memo && typeof src.memo === 'object' && typeof src.memo.text === 'string') {
+                    day.memo = { text: src.memo.text, at: typeof src.memo.at === 'number' ? src.memo.at : 0 };
+                }
+                if (Object.keys(day).length) out.days[key] = day;
+            });
+        }
+        return out;
+    }
+
+    // 오래된 기록만 정리한다. "취소함(who: null)"도 상대방에게 전달되어야 하는
+    // 정보이므로, 보관 기간 안에서는 빈 값이라도 지우지 않는다. 지워버리면 합칠 때
+    // 상대방 기기에 남아 있던 예전 예약이 되살아난다.
+    function prune() {
+        var cutoff = dateKey(addDays(startOfWeek(new Date()), -7 * KEEP_WEEKS));
+        Object.keys(data.days).forEach(function (key) {
+            if (key < cutoff) delete data.days[key];
+        });
+    }
+
+    function save(options) {
+        prune();
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+            console.log('저장 실패:', e);
+        }
+        render();
+        if (!options || options.push !== false) schedulePush();
+    }
+
+    /* ===== 예약 읽기/쓰기 ===== */
+    function getDay(key) { return data.days[key] || {}; }
+    function slotWho(key, slot) {
+        var s = getDay(key)[slot];
+        return s ? s.who : null;
+    }
+    function dayMemo(key) {
+        var m = getDay(key).memo;
+        return m ? m.text : '';
+    }
+
+    function setSlot(key, slot, who, at) {
+        if (!data.days[key]) data.days[key] = {};
+        data.days[key][slot] = { who: who, at: at || nowMs() };
+    }
+
+    function personName(who) {
+        return who && data.people[who] ? data.people[who].name : '';
+    }
+    function personColor(who) {
+        return who && data.people[who] ? data.people[who].color : '';
+    }
+
+    /* ===== 렌더링 ===== */
+    function render() {
+        renderWeekLabel();
+        renderSummary();
+        renderDays();
+        renderHint();
+        renderSyncPill();
+    }
+
+    function renderWeekLabel() {
+        var s = weekStart(weekOffset), e = addDays(s, 6);
+        document.getElementById('week-range').textContent =
+            (s.getMonth() + 1) + '월 ' + s.getDate() + '일 – ' +
+            (e.getMonth() + 1) + '월 ' + e.getDate() + '일';
+        var rel = weekOffset === 0 ? '이번 주'
+            : weekOffset === 1 ? '다음 주'
+            : weekOffset === -1 ? '지난주'
+            : (weekOffset > 0 ? weekOffset + '주 뒤' : (-weekOffset) + '주 전');
+        document.getElementById('week-rel').textContent = rel + ' · ' + s.getFullYear() + '년';
+    }
+
+    function renderSummary() {
+        var s = weekStart(weekOffset);
+        var count = { p1: 0, p2: 0 }; // 반일 = 0.5일
+        for (var i = 0; i < 7; i++) {
+            var key = dateKey(addDays(s, i));
+            ['am', 'pm'].forEach(function (slot) {
+                var who = slotWho(key, slot);
+                if (who) count[who] += 0.5;
+            });
+        }
+        var html = ['p1', 'p2'].map(function (k) {
+            var p = data.people[k];
+            var n = count[k];
+            var label = (Math.round(n * 10) / 10) + '일';
+            return '<div class="summary-card">' +
+                '<span class="swatch" style="background:' + escapeAttr(p.color) + '"></span>' +
+                '<span class="who">' + escapeHtml(p.name) + '</span>' +
+                '<span class="cnt">' + label + '</span>' +
+                '</div>';
+        }).join('');
+        document.getElementById('summary').innerHTML = html;
+    }
+
+    function renderDays() {
+        var s = weekStart(weekOffset);
+        var todayKey = dateKey(new Date());
+        var half = data.mode.value === 'half';
+        var html = '';
+
+        for (var i = 0; i < 7; i++) {
+            var d = addDays(s, i);
+            var key = dateKey(d);
+            var cls = 'day';
+            if (key === todayKey) cls += ' today';
+            else if (key < todayKey) cls += ' past';
+            if (i === 5) cls += ' sat';
+            if (i === 6) cls += ' sun';
+
+            var memo = dayMemo(key);
+            html += '<div class="' + cls + '">' +
+                '<div class="day-head">' +
+                    '<span class="day-name">' + DAY_NAMES[i] + '</span>' +
+                    '<span class="day-date">' + (d.getMonth() + 1) + '/' + d.getDate() + '</span>' +
+                    (key === todayKey ? '<span class="day-today-tag">오늘</span>' : '') +
+                    '<button class="day-memo-btn' + (memo ? ' has' : '') + '" onclick="openMemo(\'' + key + '\')">' +
+                        (memo ? escapeHtml(memo) : '＋ 메모') +
+                    '</button>' +
+                '</div>' +
+                '<div class="slots">';
+
+            if (half) {
+                html += slotHtml(key, 'am', '오전') + slotHtml(key, 'pm', '오후');
+            } else {
+                html += slotHtml(key, 'all', '하루 종일');
+            }
+
+            html += '</div></div>';
+        }
+        document.getElementById('days').innerHTML = html;
+    }
+
+    // slot이 'all'이면 오전·오후를 한 덩어리로 다룬다. 단 반일로 나눠 잡아둔 날은
+    // 하루 종일 모드에서도 오전/오후를 그대로 보여줘야 예약이 숨지 않는다.
+    function slotHtml(key, slot, label) {
+        if (slot === 'all') {
+            var am = slotWho(key, 'am'), pm = slotWho(key, 'pm');
+            if (am !== pm) {
+                return slotButton(key, 'am', '오전', am) + slotButton(key, 'pm', '오후', pm);
+            }
+            return slotButton(key, 'all', label, am);
+        }
+        return slotButton(key, slot, label, slotWho(key, slot));
+    }
+
+    function slotButton(key, slot, label, who) {
+        return '<button class="slot' + (who ? ' taken' : '') + '" style="' + slotStyle(who) + '" ' +
+               'onclick="tapSlot(\'' + key + '\',\'' + slot + '\')">' +
+               '<span class="slot-label">' + label + '</span>' +
+               '<span class="slot-who">' + (who ? escapeHtml(personName(who)) : '비어 있음') + '</span>' +
+               '</button>';
+    }
+
+    function slotStyle(who) {
+        if (!who) return '';
+        var c = personColor(who);
+        return 'background:' + escapeAttr(c) + ';border-color:' + escapeAttr(c) + ';color:#fff';
+    }
+
+    function renderHint() {
+        document.getElementById('hint').textContent = data.mode.value === 'half'
+            ? '칸을 누르면 비어 있음 → ' + data.people.p1.name + ' → ' + data.people.p2.name + ' 순서로 바뀝니다.'
+            : '날짜를 누르면 비어 있음 → ' + data.people.p1.name + ' → ' + data.people.p2.name + ' 순서로 바뀝니다.';
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+    function escapeAttr(str) { return escapeHtml(str); }
+
+    /* ===== 조작 ===== */
+    var CYCLE = [null, 'p1', 'p2'];
+
+    function tapSlot(key, slot) {
+        var current = slot === 'all' ? slotWho(key, 'am') : slotWho(key, slot);
+        var next = CYCLE[(CYCLE.indexOf(current) + 1) % CYCLE.length];
+        applySlot(key, slot, next, true);
+    }
+
+    function applySlot(key, slot, who, recordUndo) {
+        var slots = slot === 'all' ? ['am', 'pm'] : [slot];
+        if (recordUndo) {
+            lastChange = {
+                key: key,
+                slot: slot,
+                prev: slots.map(function (s) { return slotWho(key, s); })
+            };
+        }
+        var t = nowMs();
+        slots.forEach(function (s) { setSlot(key, s, who, t); });
+        save();
+
+        if (recordUndo) {
+            var d = key.split('-');
+            var label = Number(d[1]) + '/' + Number(d[2]) +
+                (slot === 'am' ? ' 오전' : slot === 'pm' ? ' 오후' : '') +
+                ' → ' + (who ? personName(who) : '비움');
+            showToast(label, true);
+        }
+    }
+
+    function undoLast() {
+        if (!lastChange) return;
+        var slots = lastChange.slot === 'all' ? ['am', 'pm'] : [lastChange.slot];
+        var t = nowMs();
+        slots.forEach(function (s, i) { setSlot(lastChange.key, s, lastChange.prev[i], t); });
+        lastChange = null;
+        save();
+        hideToast();
+    }
+
+    function moveWeek(n) { weekOffset += n; render(); }
+    function goToday() { weekOffset = 0; render(); }
+
+    function copyPrevWeek() {
+        var target = weekStart(weekOffset);
+        var source = addDays(target, -7);
+        var found = false;
+        var t = nowMs();
+        for (var i = 0; i < 7; i++) {
+            var sKey = dateKey(addDays(source, i));
+            var tKey = dateKey(addDays(target, i));
+            ['am', 'pm'].forEach(function (slot) {
+                var who = slotWho(sKey, slot);
+                if (who) found = true;
+                setSlot(tKey, slot, who, t);
+            });
+        }
+        if (!found) {
+            showToast('지난주에 예약이 없습니다', false);
+            return;
+        }
+        lastChange = null;
+        save();
+        showToast('지난주 예약을 가져왔습니다', false);
+    }
+
+    function clearWeek() {
+        var s = weekStart(weekOffset);
+        if (!confirm('이번 주 예약을 모두 지울까요?')) return;
+        var t = nowMs();
+        for (var i = 0; i < 7; i++) {
+            var key = dateKey(addDays(s, i));
+            setSlot(key, 'am', null, t);
+            setSlot(key, 'pm', null, t);
+            if (data.days[key] && data.days[key].memo) data.days[key].memo = { text: '', at: t };
+        }
+        lastChange = null;
+        save();
+        showToast('비웠습니다', false);
+    }
+
+    function resetAll() {
+        if (!confirm('모든 예약을 삭제할까요?\n\n연결되어 있으면 상대방 화면에서도 지워집니다.')) return;
+        var t = nowMs();
+        Object.keys(data.days).forEach(function (key) {
+            setSlot(key, 'am', null, t);
+            setSlot(key, 'pm', null, t);
+            if (data.days[key].memo) data.days[key].memo = { text: '', at: t };
+        });
+        lastChange = null;
+        save();
+        closeSettings();
+        showToast('모두 삭제했습니다', false);
+    }
+
+    /* ===== 메모 ===== */
+    var memoKey = null;
+    function openMemo(key) {
+        memoKey = key;
+        var d = key.split('-');
+        document.getElementById('memo-title').textContent = Number(d[1]) + '월 ' + Number(d[2]) + '일 메모';
+        document.getElementById('memo-input').value = dayMemo(key);
+        document.getElementById('memo-modal').classList.add('active');
+        setTimeout(function () { document.getElementById('memo-input').focus(); }, 100);
+    }
+    function closeMemo() {
+        document.getElementById('memo-modal').classList.remove('active');
+        memoKey = null;
+    }
+    function saveMemo() {
+        if (!memoKey) return;
+        var text = document.getElementById('memo-input').value.trim();
+        if (!data.days[memoKey]) data.days[memoKey] = {};
+        data.days[memoKey].memo = { text: text, at: nowMs() };
+        lastChange = null;
+        save();
+        closeMemo();
+    }
+
+    /* ===== 토스트 ===== */
+    var toastTimer = null;
+    function showToast(text, undoable) {
+        document.getElementById('toast-text').textContent = text;
+        document.getElementById('toast-action').style.display = undoable ? '' : 'none';
+        var el = document.getElementById('toast');
+        el.classList.add('show');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(hideToast, 3500);
+    }
+    function hideToast() {
+        document.getElementById('toast').classList.remove('show');
+    }
+
+    /* ===== 설정 ===== */
+    function openSettings() {
+        document.getElementById('p1-name').value = data.people.p1.name;
+        document.getElementById('p1-color').value = data.people.p1.color;
+        document.getElementById('p2-name').value = data.people.p2.name;
+        document.getElementById('p2-color').value = data.people.p2.color;
+        updateModeButtons();
+        renderSyncSection();
+        document.getElementById('settings-modal').classList.add('active');
+    }
+    function closeSettings() {
+        document.getElementById('settings-modal').classList.remove('active');
+    }
+
+    function savePerson(k) {
+        var name = document.getElementById(k + '-name').value.trim();
+        var color = document.getElementById(k + '-color').value;
+        data.people[k] = {
+            name: name || (k === 'p1' ? '나' : '와이프'),
+            color: color,
+            at: nowMs()
+        };
+        document.getElementById(k + '-name').value = data.people[k].name;
+        save();
+    }
+
+    function setMode(value) {
+        data.mode = { value: value, at: nowMs() };
+        updateModeButtons();
+        save();
+    }
+    function updateModeButtons() {
+        document.getElementById('mode-day').classList.toggle('on', data.mode.value === 'day');
+        document.getElementById('mode-half').classList.toggle('on', data.mode.value === 'half');
+    }
+
+    /* =====================================================================
+       동기화 (Supabase)
+       ===================================================================== */
+    var TABLE = 'car_schedule';
+    var client = null;
+    var config = null;       // { url, key, room }
+    var channel = null;
+    var pushTimer = null;
+    var pollTimer = null;
+    var lastSyncAt = null;
+    var syncState = 'off';   // off | ok | wait | err
+
+    function setSyncState(state) {
+        syncState = state;
+        renderSyncPill();
+        if (document.getElementById('settings-modal').classList.contains('active')) {
+            renderSyncSection();
+        }
+    }
+
+    function renderSyncPill() {
+        var dot = document.getElementById('sync-dot');
+        var text = document.getElementById('sync-text');
+        dot.className = 'sync-dot' + (syncState === 'ok' ? ' on' : syncState === 'wait' ? ' wait' : syncState === 'err' ? ' err' : '');
+        text.textContent = syncState === 'off' ? '이 기기'
+            : syncState === 'ok' ? '공유 중'
+            : syncState === 'wait' ? '저장 중'
+            : '오류';
+        document.getElementById('header-sub').textContent = syncState === 'ok'
+            ? data.people.p1.name + ' · ' + data.people.p2.name + ' 함께 보는 중'
+            : '한 대를 겹치지 않게 나눠 쓰기';
+    }
+
+    function renderSyncSection() {
+        var connected = !!(client && config);
+        document.getElementById('sync-connected').style.display = connected ? '' : 'none';
+        document.getElementById('sync-setup').style.display = connected ? 'none' : '';
+        if (!connected) return;
+        document.getElementById('st-state').textContent =
+            syncState === 'ok' ? '연결됨' : syncState === 'wait' ? '저장 중' : syncState === 'err' ? '오류' : '연결됨';
+        document.getElementById('st-room').textContent = config.room;
+        document.getElementById('st-time').textContent = lastSyncAt
+            ? lastSyncAt.getHours() + ':' + ('0' + lastSyncAt.getMinutes()).slice(-2)
+            : '–';
+    }
+
+    function randomRoom() {
+        var chars = 'abcdefghijkmnpqrstuvwxyz23456789';
+        var out = '';
+        for (var i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
+        return out;
+    }
+
+    // 두 사람이 각자 고친 내용을 잃지 않도록, 필드별로 더 최근 수정본을 남긴다.
+    function merge(local, remote) {
+        var out = { v: 1, people: {}, mode: null, days: {} };
+
+        ['p1', 'p2'].forEach(function (k) {
+            var a = local.people[k], b = remote.people ? remote.people[k] : null;
+            out.people[k] = (b && (b.at || 0) > (a.at || 0)) ? b : a;
+        });
+
+        var rm = remote.mode;
+        out.mode = (rm && (rm.at || 0) > (local.mode.at || 0)) ? rm : local.mode;
+
+        var keys = {};
+        Object.keys(local.days).forEach(function (k) { keys[k] = 1; });
+        Object.keys(remote.days || {}).forEach(function (k) { keys[k] = 1; });
+
+        Object.keys(keys).forEach(function (key) {
+            var a = local.days[key] || {}, b = (remote.days || {})[key] || {};
+            var day = {};
+            ['am', 'pm'].forEach(function (slot) {
+                var x = a[slot], y = b[slot];
+                var win = (!x) ? y : (!y) ? x : ((y.at || 0) > (x.at || 0) ? y : x);
+                if (win) day[slot] = win;
+            });
+            var x = a.memo, y = b.memo;
+            var winMemo = (!x) ? y : (!y) ? x : ((y.at || 0) > (x.at || 0) ? y : x);
+            if (winMemo) day.memo = winMemo;
+            if (Object.keys(day).length) out.days[key] = day;
+        });
+
+        return out;
+    }
+
+    function applyRemote(remoteRaw) {
+        var remote = normalize(remoteRaw);
+        data = merge(data, remote);
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+        lastSyncAt = new Date();
+        render();
+        updateModeButtons();
+    }
+
+    function saveConfig() {
+        try { localStorage.setItem(SYNC_KEY, JSON.stringify(config)); } catch (e) {}
+    }
+
+    function createClient() {
+        if (typeof supabase === 'undefined') return null;
+        return supabase.createClient(config.url, config.key, {
+            auth: { persistSession: false }
+        });
+    }
+
+    async function connectSync() {
+        var url = document.getElementById('sync-url').value.trim().replace(/\/+$/, '');
+        var key = document.getElementById('sync-key').value.trim();
+        if (!url || !key) {
+            alert('Supabase URL과 Anon Key를 모두 입력해주세요.');
+            return;
+        }
+        if (typeof supabase === 'undefined') {
+            alert('동기화 라이브러리를 불러오지 못했습니다.\n인터넷 연결을 확인하고 새로고침해주세요.');
+            return;
+        }
+
+        var room = document.getElementById('sync-room').value.trim().replace(/[^a-zA-Z0-9_-]/g, '');
+
+        var btn = document.getElementById('sync-connect-btn');
+        btn.disabled = true;
+        btn.textContent = '연결 중...';
+        try {
+            config = { url: url, key: key, room: room || randomRoom() };
+            client = createClient();
+
+            // 서버에 이미 값이 있으면 먼저 합친 뒤 올린다 (덮어쓰기 사고 방지)
+            var existing = await client.from(TABLE).select('data').eq('room', config.room).maybeSingle();
+            if (existing.error) throw existing.error;
+            if (existing.data && existing.data.data) applyRemote(existing.data.data);
+
+            await pushNow();
+            subscribe();
+            saveConfig();
+            document.getElementById('sync-key').value = '';
+            renderSyncSection();
+            showToast('연결되었습니다. 공유 링크를 보내세요', false);
+        } catch (err) {
+            console.error(err);
+            client = null;
+            config = null;
+            alert('연결에 실패했습니다.\n\n' + (err && err.message ? err.message : '알 수 없는 오류') +
+                  '\n\nURL/Key가 맞는지, car_schedule 테이블을 만들었는지 확인해주세요.');
+            setSyncState('off');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '연결하기';
+        }
+    }
+
+    function subscribe() {
+        if (!client) return;
+        if (channel) client.removeChannel(channel);
+        channel = client
+            .channel('car-' + config.room)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: TABLE,
+                filter: 'room=eq.' + config.room
+            }, function (payload) {
+                if (payload.new && payload.new.data) applyRemote(payload.new.data);
+            })
+            .subscribe();
+
+        setSyncState('ok');
+        startPolling();
+    }
+
+    // 실시간 구독이 막혀 있거나 끊긴 경우를 대비한 안전망
+    function startPolling() {
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(function () {
+            if (document.visibilityState === 'visible') pullNow(true);
+        }, 30000);
+    }
+
+    async function pullNow(silent) {
+        if (!client) return;
+        try {
+            var res = await client.from(TABLE).select('data').eq('room', config.room).maybeSingle();
+            if (res.error) throw res.error;
+            if (res.data && res.data.data) applyRemote(res.data.data);
+            if (syncState !== 'ok') setSyncState('ok');
+        } catch (e) {
+            console.log('불러오기 오류:', e && e.message);
+            if (!silent) setSyncState('err');
+        }
+    }
+
+    function schedulePush() {
+        if (!client) return;
+        setSyncState('wait');
+        if (pushTimer) clearTimeout(pushTimer);
+        pushTimer = setTimeout(pushNow, 1200);
+    }
+
+    async function pushNow() {
+        if (!client) return;
+        try {
+            // 올리기 직전에 서버 값을 한 번 더 합친다 — 상대방이 방금 넣은 예약을
+            // 내 저장이 지워버리지 않도록.
+            var res = await client.from(TABLE).select('data').eq('room', config.room).maybeSingle();
+            if (res.error) throw res.error;
+            if (res.data && res.data.data) {
+                data = merge(data, normalize(res.data.data));
+                try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+                render();
+            }
+
+            var up = await client.from(TABLE).upsert({
+                room: config.room,
+                data: data,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'room' });
+            if (up.error) throw up.error;
+
+            lastSyncAt = new Date();
+            setSyncState('ok');
+        } catch (e) {
+            console.log('저장 오류:', e && e.message);
+            setSyncState('err');
+        }
+    }
+
+    async function manualSync() {
+        await pullNow(false);
+        await pushNow();
+        showToast('동기화했습니다', false);
+    }
+
+    function copyShareLink() {
+        var payload = btoa(unescape(encodeURIComponent(JSON.stringify({
+            u: config.url, k: config.key, r: config.room
+        })))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        var link = location.origin + location.pathname + '#s=' + payload;
+
+        function done() { showToast('링크를 복사했습니다', false); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(done, function () { promptCopy(link); });
+        } else {
+            promptCopy(link);
+        }
+    }
+    function promptCopy(link) {
+        prompt('아래 링크를 복사해서 보내세요', link);
+    }
+
+    function disconnectSync() {
+        if (!confirm('연결을 해제할까요?\n\n서버의 예약은 지워지지 않고, 이 기기에서만 공유가 끊깁니다.')) return;
+        if (channel && client) client.removeChannel(channel);
+        if (pollTimer) clearInterval(pollTimer);
+        channel = null; client = null; config = null; pollTimer = null;
+        localStorage.removeItem(SYNC_KEY);
+        setSyncState('off');
+        renderSyncSection();
+    }
+
+    // 공유 링크(#s=...)로 들어온 경우 설정 없이 바로 연결한다.
+    function readShareLink() {
+        var m = location.hash.match(/[#&]s=([^&]+)/);
+        if (!m) return false;
+        try {
+            var b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+            while (b64.length % 4) b64 += '=';
+            var obj = JSON.parse(decodeURIComponent(escape(atob(b64))));
+            if (!obj.u || !obj.k || !obj.r) return false;
+            config = { url: obj.u, key: obj.k, room: obj.r };
+            saveConfig();
+            history.replaceState(null, '', location.pathname);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function initSync() {
+        var fromLink = readShareLink();
+        if (!config) {
+            try {
+                var saved = localStorage.getItem(SYNC_KEY);
+                if (saved) config = JSON.parse(saved);
+            } catch (e) {}
+        }
+        if (!config || !config.url || !config.key || !config.room) {
+            setSyncState('off');
+            return;
+        }
+        if (typeof supabase === 'undefined') {
+            setSyncState('err');
+            return;
+        }
+        client = createClient();
+        subscribe();
+        // 받아온 뒤 곧바로 한 번 올린다 — 인터넷이 없을 때 이 기기에서 고쳐둔 내용이
+        // 다음 수정 때까지 상대방에게 안 넘어가는 일을 막는다.
+        pullNow(true).then(function () {
+            pushNow();
+            if (fromLink) showToast('예약표를 함께 보게 되었습니다', false);
+        });
+    }
+
+    /* ===== 시작 ===== */
+    loadLocal();
+    render();
+    initSync();
+
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible' && client) pullNow(true);
+    });
+    window.addEventListener('focus', function () { if (client) pullNow(true); });
+
+    document.getElementById('memo-input').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') saveMemo();
+    });
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('./sw.js').catch(function (err) {
+                console.log('서비스 워커 등록 실패:', err);
+            });
+        });
+    }
+    </script>
+</body>
+</html>
