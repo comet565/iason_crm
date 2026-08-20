@@ -3824,6 +3824,22 @@
         let lastSyncTime = null;
         let isApplyingRemote = false;
 
+        // 로컬에 아직 서버로 올리지 못한 변경이 있는지 표시한다.
+        // iOS는 앱을 백그라운드로 보내면 타이머를 얼려버려서 자동 저장(2초 지연)이
+        // 영영 실행되지 않을 수 있다. 이 표시가 없으면 다음 실행 때 서버의 옛 데이터가
+        // 로컬을 덮어써서 방금 한 수정이 조용히 사라진다.
+        function hasPendingLocalChanges() {
+            return localStorage.getItem('pendingSync') === '1';
+        }
+
+        function setPendingLocalChanges(pending) {
+            if (pending) {
+                localStorage.setItem('pendingSync', '1');
+            } else {
+                localStorage.removeItem('pendingSync');
+            }
+        }
+
         function initCloudSync() {
             const saved = localStorage.getItem('cloudSyncConfig');
             if (!saved) return;
@@ -3839,7 +3855,13 @@
                     var session = result && result.data && result.data.session;
                     if (session) {
                         cloudSession = session;
-                        pullFromCloud(true);
+                        // 미처 올리지 못한 로컬 변경이 있으면 그쪽이 최신이므로,
+                        // 서버 데이터를 받아오는 대신 로컬을 먼저 올려서 보존한다.
+                        if (hasPendingLocalChanges()) {
+                            pushToCloud();
+                        } else {
+                            pullFromCloud(true);
+                        }
                         subscribeToCloudChannel();
                     } else {
                         cloudClient = null;
@@ -3865,6 +3887,9 @@
                     filter: 'room=eq.' + SYNC_ROOM
                 }, function(payload) {
                     if (isApplyingRemote) return;
+                    // 아직 못 올린 로컬 변경이 있으면 그게 사라지므로 덮어쓰지 않는다.
+                    // 곧 실행될 자동 저장이 이 기기의 내용을 서버로 올릴 것이다.
+                    if (hasPendingLocalChanges()) return;
                     if (payload.new && payload.new.data) {
                         applyRemoteData(payload.new.data);
                         showSyncBanner('success', '다른 기기에서 변경된 데이터를 반영했습니다');
@@ -3928,10 +3953,12 @@
             const { error } = await cloudClient.from('crm_sync').upsert(payload, { onConflict: 'room' });
             isApplyingRemote = false;
             if (error) {
+                // 표시를 남겨둬야 다음 실행 때 서버 데이터로 덮어쓰지 않고 다시 올린다.
                 console.log('동기화 저장 오류:', error.message);
                 updateSyncStatusUI('저장 실패');
                 return;
             }
+            setPendingLocalChanges(false);
             lastSyncTime = new Date();
             updateSyncStatusUI('동기화됨');
         }
@@ -3939,12 +3966,33 @@
         // 데이터 변경 시 호출 (2초 후 자동 저장)
         function triggerAutoSync() {
             if (!cloudClient || !cloudSession) return;
+            // 실제로 올리기 전에 미리 표시해둔다. 업로드 전에 앱이 종료되더라도
+            // 다음 실행 때 이 표시를 보고 로컬 변경을 살려낼 수 있다.
+            setPendingLocalChanges(true);
             if (syncTimeout) clearTimeout(syncTimeout);
             updateSyncStatusUI('저장 대기 중...');
             syncTimeout = setTimeout(function() {
                 pushToCloud();
             }, 2000);
         }
+
+        // 앱이 백그라운드로 가거나 닫히기 직전에 밀린 저장을 즉시 실행한다.
+        // iOS에서 홈 화면 앱을 내리면 setTimeout이 얼어붙기 때문에, 2초를 기다리지
+        // 않고 여기서 바로 올려야 변경이 유실되지 않는다.
+        function flushPendingSync() {
+            if (!cloudClient || !cloudSession) return;
+            if (!hasPendingLocalChanges()) return;
+            if (syncTimeout) {
+                clearTimeout(syncTimeout);
+                syncTimeout = null;
+            }
+            pushToCloud();
+        }
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') flushPendingSync();
+        });
+        window.addEventListener('pagehide', flushPendingSync);
 
         function openSyncModal() {
             document.getElementById('sync-modal').classList.add('active');
@@ -4053,6 +4101,13 @@
 
         async function manualSyncFromCloud() {
             if (!confirm('서버의 데이터로 덮어쓰시겠습니까?\n\n현재 기기의 저장되지 않은 변경사항은 사라집니다.')) return;
+            // 사용자가 로컬 변경을 버리겠다고 명시적으로 선택한 경우이므로,
+            // 밀린 자동 저장을 취소해서 방금 받아온 서버 데이터를 다시 덮어쓰지 않게 한다.
+            if (syncTimeout) {
+                clearTimeout(syncTimeout);
+                syncTimeout = null;
+            }
+            setPendingLocalChanges(false);
             await pullFromCloud(false);
         }
 
