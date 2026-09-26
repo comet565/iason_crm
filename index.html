@@ -1017,6 +1017,139 @@
                 flex: 0 0 calc(50% - 8px);
             }
         }
+
+        /* ---- 사업 관리 ---- */
+        .pj-summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        .pj-summary .summary-card { cursor: pointer; }
+        .pj-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .pj-controls input { flex: 1 1 200px; min-width: 0; }
+        .pj-controls select { flex: 0 1 160px; }
+        .pj-list { display: flex; flex-direction: column; gap: 12px; }
+        .pj-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 16px 18px;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .pj-card:hover { border-color: var(--accent); box-shadow: var(--shadow-md); }
+        .pj-card.closed { opacity: 0.65; }
+        .pj-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .pj-card-title { font-size: 16px; font-weight: 600; color: var(--text-primary); word-break: keep-all; }
+        .pj-card-sub { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+        .pj-status {
+            flex: 0 0 auto;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .pj-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 14px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+        .pj-next { color: var(--text-primary); font-weight: 500; }
+        .pj-next.soon { color: var(--danger); }
+        .pj-people { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+        .pj-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .pj-chip small { color: var(--text-secondary); font-size: 11px; }
+        .pj-member-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .pj-member-row .pj-member-name { flex: 1; min-width: 0; font-size: 14px; }
+        .pj-member-row .pj-member-name small { display: block; color: var(--text-secondary); font-size: 12px; }
+        .pj-member-row select { flex: 0 0 130px; padding: 6px 8px; }
+        .pj-remove {
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+        .pj-search-results {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            margin-top: 6px;
+            max-height: 220px;
+            overflow-y: auto;
+            background: var(--surface);
+        }
+        .pj-search-results:empty { display: none; }
+        .pj-search-results button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            border-bottom: 1px solid var(--border);
+            padding: 9px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: inherit;
+            color: var(--text-primary);
+        }
+        .pj-search-results button small { color: var(--text-secondary); margin-left: 6px; }
+        .pj-search-results button:hover { background: var(--accent-soft); }
+        .pj-box {
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px;
+        }
+        .pj-linked-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .pj-linked-item:last-child { border-bottom: none; }
+        @media (max-width: 640px) {
+            .pj-summary { grid-template-columns: repeat(2, 1fr); }
+            .pj-controls select { flex: 1 1 45%; }
+            .pj-member-row select { flex-basis: 110px; }
+        }
     </style>
 </head>
 <body>
@@ -1032,6 +1165,7 @@
             <div class="tab-scroll">
                 <button class="tab active" onclick="switchTab('customers')">고객 목록</button>
                 <button class="tab" onclick="switchTab('key-customers')">핵심 고객</button>
+                <button class="tab" onclick="switchTab('projects')">사업</button>
                 <button class="tab" onclick="switchTab('todo')">
                     To-Do List
                     <span id="todo-badge" class="tab-badge" style="display: none;">0</span>
@@ -1128,6 +1262,53 @@
                 </div>
 
                 <div id="key-customers-list" class="customer-list"></div>
+            </div>
+        </div>
+
+        <!-- 사업 관리 섹션 -->
+        <div id="projects-section" class="content-section">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 10px;">
+                    <h2 style="margin: 0;">사업 관리 <span id="project-count-label" style="font-size: 15px; font-weight: 400; color: var(--text-secondary);"></span></h2>
+                    <button class="btn btn-primary" onclick="openProjectModal()">+ 사업 추가</button>
+                </div>
+
+                <div class="pj-summary">
+                    <div class="summary-card" onclick="setProjectStatusFilter('active')">
+                        <div class="summary-number" id="pj-sum-active">0</div>
+                        <div class="summary-label">진행 중</div>
+                    </div>
+                    <div class="summary-card" onclick="setProjectStatusFilter('proposal')">
+                        <div class="summary-number" id="pj-sum-proposal">0</div>
+                        <div class="summary-label">제안 단계</div>
+                    </div>
+                    <div class="summary-card" onclick="setProjectStatusFilter('soon')">
+                        <div class="summary-number" id="pj-sum-soon">0</div>
+                        <div class="summary-label">30일 내 일정</div>
+                    </div>
+                    <div class="summary-card" onclick="setProjectStatusFilter('수주')">
+                        <div class="summary-number" id="pj-sum-won">0</div>
+                        <div class="summary-label">수주</div>
+                    </div>
+                </div>
+
+                <div class="pj-controls">
+                    <input type="text" id="project-search" placeholder="사업명, 기관, 관련 고객, 메모 검색" oninput="renderProjectList()">
+                    <select id="project-status-filter" onchange="renderProjectList()">
+                        <option value="active">진행 중 전체</option>
+                        <option value="all">전체 (종료 포함)</option>
+                        <option value="proposal">제안 단계</option>
+                        <option value="soon">30일 내 일정</option>
+                    </select>
+                    <select id="project-sort" onchange="renderProjectList()">
+                        <option value="next">다음 일정순</option>
+                        <option value="recent">최근 등록순</option>
+                        <option value="budget">예산 큰 순</option>
+                        <option value="name">사업명순</option>
+                    </select>
+                </div>
+
+                <div id="project-list" class="pj-list"></div>
             </div>
         </div>
 
@@ -1604,6 +1785,19 @@
                 </div>
 
                 <div class="form-group">
+                    <label>관여 사업</label>
+                    <div class="pj-box">
+                        <div id="customer-project-list"></div>
+                        <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                            <select id="customer-project-select" style="flex: 1 1 160px; min-width: 0;"></select>
+                            <select id="customer-project-role" style="flex: 0 1 110px; min-width: 0;"></select>
+                            <button type="button" class="btn btn-secondary" onclick="linkCustomerToProject()" style="white-space: nowrap;">연결</button>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="openNewProjectForCurrentCustomer()" style="margin-top: 8px; width: 100%;">+ 이 고객으로 새 사업 등록</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label>연락 이력</label>
                     <div style="background: var(--surface-muted); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; max-width: 100%; box-sizing: border-box;">
                         <div style="display: flex; gap: 8px; margin-bottom: 8px; max-width: 100%;">
@@ -1670,6 +1864,122 @@
                 <div id="cleanup-list"></div>
                 <div id="cleanup-actions" style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- 사업 추가/수정 모달 -->
+    <div id="project-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="project-modal-title">사업 추가</h2>
+                <button class="close-btn" onclick="closeProjectModal()">&times;</button>
+            </div>
+            <form id="project-form" onsubmit="saveProject(event)">
+                <div class="form-group">
+                    <label>사업명 *</label>
+                    <input type="text" id="pj-name" required placeholder="예: 차기 전술정보통신체계(TICN) 성능개량">
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>사업 구분</label>
+                        <select id="pj-category">
+                            <option value="">선택</option>
+                            <option value="무기체계">무기체계</option>
+                            <option value="전력지원체계">전력지원체계</option>
+                            <option value="핵심기술 연구개발">핵심기술 연구개발</option>
+                            <option value="국과연 과제">국과연(ADD) 과제</option>
+                            <option value="민군기술협력">민군기술협력</option>
+                            <option value="연구용역">연구용역</option>
+                            <option value="국산화/부품">국산화/부품</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>발주/주관기관</label>
+                        <input type="text" id="pj-agency" list="pj-agency-list" placeholder="예: 방위사업청, ADD">
+                        <datalist id="pj-agency-list"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>사업 단계</label>
+                        <select id="pj-stage">
+                            <option value="">선택</option>
+                            <option value="소요제기">소요제기/결정</option>
+                            <option value="선행연구">선행연구</option>
+                            <option value="사업타당성조사">사업타당성조사</option>
+                            <option value="탐색개발">탐색개발</option>
+                            <option value="체계개발">체계개발</option>
+                            <option value="시험평가">시험평가</option>
+                            <option value="양산">양산</option>
+                            <option value="운영유지">운영유지/성능개량</option>
+                            <option value="과제수행">과제 수행</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>영업 상태</label>
+                        <select id="pj-status">
+                            <option value="관심">관심</option>
+                            <option value="정보수집">정보수집</option>
+                            <option value="제안준비">제안준비</option>
+                            <option value="제안제출">제안제출</option>
+                            <option value="협상">평가/협상</option>
+                            <option value="수주">수주</option>
+                            <option value="실주">실주</option>
+                            <option value="보류">보류</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>예산 (억원)</label>
+                        <input type="number" id="pj-budget" min="0" step="0.1" inputmode="decimal" placeholder="예: 350">
+                    </div>
+                    <div class="form-group">
+                        <label>사업 기간</label>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <input type="date" id="pj-start" style="flex: 1; min-width: 0;">
+                            <span style="color: var(--text-tertiary);">~</span>
+                            <input type="date" id="pj-end" style="flex: 1; min-width: 0;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>다음 일정</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="date" id="pj-next-date" style="flex: 0 0 150px; min-width: 0;">
+                        <input type="text" id="pj-next-title" placeholder="예: 제안서 제출, 기술협의회" style="flex: 1; min-width: 0;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>관련 고객</label>
+                    <div class="pj-box">
+                        <input type="text" id="pj-member-search" placeholder="이름·기관으로 고객 찾아 추가" oninput="renderProjectMemberSearch()" autocomplete="off" style="width: 100%; box-sizing: border-box;">
+                        <div id="pj-member-results" class="pj-search-results"></div>
+                        <div id="pj-member-list" style="margin-top: 8px;"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>메모</label>
+                    <textarea id="pj-notes" placeholder="경쟁사, 요구사항, 예산 동향 등"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>진행 기록</label>
+                    <div class="pj-box">
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <input type="date" id="pj-log-date" style="flex: 1 1 0; min-width: 0;">
+                            <button type="button" class="btn btn-secondary" onclick="addProjectLogEntry()" style="white-space: nowrap;">기록 추가</button>
+                        </div>
+                        <input type="text" id="pj-log-note" placeholder="예: 방사청 사업팀 미팅, RFP 공고" style="width: 100%; box-sizing: border-box; margin-bottom: 10px;">
+                        <div id="pj-log-list"></div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">저장</button>
+                    <button type="button" id="pj-delete-btn" class="btn btn-danger" onclick="deleteProject()" style="flex: 1;">삭제</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1985,6 +2295,7 @@
         let customers = JSON.parse(localStorage.getItem('customers') || '[]');
         let todos = JSON.parse(localStorage.getItem('todos') || '[]');
         let keyCustomerIds = JSON.parse(localStorage.getItem('keyCustomerIds') || '[]'); // 핵심 고객 ID 목록
+        let projects = JSON.parse(localStorage.getItem('projects') || '[]'); // 사업(프로젝트) 목록
         let currentEditId = null;
         let currentTodoId = null;
         let currentKeyFilter = 'all';
@@ -2009,12 +2320,9 @@
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             
-            const clickedTab = Array.from(document.querySelectorAll('.tab')).find(t => 
-                t.textContent.includes(tab === 'customers' ? '고객 목록' : 
-                                      tab === 'key-customers' ? '핵심 고객' :
-                                      tab === 'todo' ? 'To-Do' :
-                                      tab === 'add' ? '고객 추가' : '관계도')
-            );
+            const tabLabel = { customers: '고객 목록', 'key-customers': '핵심 고객', projects: '사업',
+                               todo: 'To-Do', add: '고객 추가', network: '관계도' }[tab] || '관계도';
+            const clickedTab = Array.from(document.querySelectorAll('.tab')).find(t => t.textContent.trim().startsWith(tabLabel));
             if (clickedTab) clickedTab.classList.add('active');
             
             document.getElementById(`${tab}-section`).classList.add('active');
@@ -2023,6 +2331,8 @@
                 renderCustomerList();
             } else if (tab === 'key-customers') {
                 renderKeyCustomers();
+            } else if (tab === 'projects') {
+                renderProjectList();
             } else if (tab === 'todo') {
                 renderTodoList();
             } else if (tab === 'network') {
@@ -2563,6 +2873,7 @@
                     (customer.militaryType && customer.classNumber ? '<span><strong>•</strong> ' + customer.militaryType + ' ' + customer.classNumber + '기</span>' : '') +
                     (customer.phone ? '<span><strong>•</strong> ' + customer.phone + '</span>' : '') +
                     '<span style="color: ' + contactColor + ';"><strong>•</strong> ' + contactLabel + '</span>' +
+                    (getProjectsForCustomer(customer.id).length ? '<span style="color: var(--accent);"><strong>•</strong> 사업 ' + getProjectsForCustomer(customer.id).length + '건</span>' : '') +
                     '</div><div class="action-buttons">' +
                     '<button class="btn btn-primary" onclick="editCustomer(' + customer.id + ')">상세보기/수정</button>' +
                     (isKey ? 
@@ -2760,6 +3071,7 @@
             document.getElementById('contact-log-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('contact-log-note').value = '';
             renderContactLog();
+            renderCustomerProjects();
 
             const editModal = document.getElementById('edit-modal');
             editModal.classList.add('active');
@@ -2905,6 +3217,12 @@
             
             // 핵심 고객 목록에서도 제거
             keyCustomerIds = keyCustomerIds.filter(function(keyId) { return keyId !== id; });
+
+            // 사업의 관련 고객에서도 제거
+            projects.forEach(function(p) {
+                if (p.members) p.members = p.members.filter(function(m) { return m.customerId !== id; });
+            });
+            localStorage.setItem('projects', JSON.stringify(projects));
             
             localStorage.setItem('customers', JSON.stringify(customers));
             localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
@@ -3060,12 +3378,413 @@
             openCleanupModal();
         }
 
+        // ---- 사업(프로젝트) 관리 ----
+        // 사업마다 관련 고객과 역할을 연결해 "이 사업의 키맨은 누구인가 / 이 사람이
+        // 관여한 사업은 무엇인가"를 양방향으로 볼 수 있게 한다.
+        var PJ_ROLES = ['의사결정권자', '사업담당(PM)', '실무자', '평가위원', '기술자문', '협력사', '경쟁사', '기타'];
+        var PJ_STATUS_STYLE = {
+            '관심':     ['#6e6e73', 'rgba(110,110,115,0.1)'],
+            '정보수집': ['#3a5ba9', 'rgba(58,91,169,0.1)'],
+            '제안준비': ['#a8761c', 'rgba(184,134,46,0.14)'],
+            '제안제출': ['#c2621a', 'rgba(196,106,27,0.13)'],
+            '협상':     ['#7a5aa6', 'rgba(122,90,166,0.13)'],
+            '수주':     ['#2f9e5b', 'rgba(47,158,91,0.13)'],
+            '실주':     ['#d64545', 'rgba(214,69,69,0.1)'],
+            '보류':     ['#8a8f98', 'rgba(138,143,152,0.12)']
+        };
+        var PJ_STATUS_LABEL = { '협상': '평가/협상' };
+        var PJ_CLOSED = ['실주', '보류'];
+        var PJ_PROPOSAL = ['제안준비', '제안제출', '협상'];
+        var PJ_DEFAULT_AGENCIES = ['방위사업청', '국방부', '합동참모본부', '육군', '해군', '공군', '국방과학연구소(ADD)', '국방기술진흥연구소', '국방기술품질원', 'KIDA'];
+
+        var currentProjectId = null;
+        var pjDraft = { members: [], log: [] };
+
+        function saveProjects() {
+            localStorage.setItem('projects', JSON.stringify(projects));
+            triggerAutoSync();
+        }
+
+        function pjDaysUntil(dateStr) {
+            if (!dateStr) return null;
+            var parts = dateStr.split('-').map(Number);
+            var target = new Date(parts[0], parts[1] - 1, parts[2]);
+            var today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return Math.round((target - today) / 86400000);
+        }
+
+        function pjDdayLabel(days) {
+            if (days === null) return '';
+            if (days === 0) return 'D-Day';
+            return days > 0 ? 'D-' + days : 'D+' + (-days);
+        }
+
+        function pjFormatBudget(b) {
+            if (b === '' || b === null || b === undefined || isNaN(Number(b))) return '';
+            var n = Number(b);
+            if (n >= 10000) return (Math.round(n / 1000) / 10) + '조원';
+            return n.toLocaleString('ko-KR') + '억원';
+        }
+
+        function pjFormatMonth(d) {
+            return d ? d.slice(0, 7).replace('-', '.') : '';
+        }
+
+        function pjStatusPill(status) {
+            var st = PJ_STATUS_STYLE[status] || PJ_STATUS_STYLE['관심'];
+            return '<span class="pj-status" style="color: ' + st[0] + '; background: ' + st[1] + ';">' + mmEscape(PJ_STATUS_LABEL[status] || status || '관심') + '</span>';
+        }
+
+        function pjCustomerLabel(c) {
+            return (c.rank ? c.rank + ' ' : '') + c.name;
+        }
+
+        function getProjectsForCustomer(customerId) {
+            return projects.filter(function(p) {
+                return (p.members || []).some(function(m) { return m.customerId === customerId; });
+            });
+        }
+
+        function projectMatchesFilter(p, filter) {
+            var days = pjDaysUntil(p.nextDate);
+            if (filter === 'all') return true;
+            if (filter === 'active') return !PJ_CLOSED.includes(p.status);
+            if (filter === 'proposal') return PJ_PROPOSAL.includes(p.status);
+            if (filter === 'soon') return !PJ_CLOSED.includes(p.status) && days !== null && days >= 0 && days <= 30;
+            return p.status === filter;
+        }
+
+        function projectMatchesSearch(p, term) {
+            var keywords = term.toLowerCase().split(/\s+/).filter(Boolean);
+            if (!keywords.length) return true;
+            var names = (p.members || []).map(function(m) {
+                var c = customers.find(function(x) { return x.id === m.customerId; });
+                return c ? [c.name, c.organization, m.role].join(' ') : '';
+            }).join(' ');
+            var hay = [p.name, p.category, p.agency, p.stage, p.status, p.notes, p.nextTitle, names].filter(Boolean).join(' ').toLowerCase();
+            return keywords.every(function(k) { return hay.includes(k); });
+        }
+
+        function setProjectStatusFilter(value) {
+            var sel = document.getElementById('project-status-filter');
+            if (!Array.prototype.some.call(sel.options, function(o) { return o.value === value; })) {
+                var opt = document.createElement('option');
+                opt.value = value;
+                opt.textContent = (PJ_STATUS_LABEL[value] || value) + '만';
+                sel.appendChild(opt);
+            }
+            sel.value = value;
+            renderProjectList();
+        }
+
+        function renderProjectList() {
+            var container = document.getElementById('project-list');
+            if (!container) return;
+            var filter = document.getElementById('project-status-filter').value;
+            var sort = document.getElementById('project-sort').value;
+            var term = document.getElementById('project-search').value || '';
+
+            document.getElementById('pj-sum-active').textContent = projects.filter(function(p) { return projectMatchesFilter(p, 'active'); }).length;
+            document.getElementById('pj-sum-proposal').textContent = projects.filter(function(p) { return projectMatchesFilter(p, 'proposal'); }).length;
+            document.getElementById('pj-sum-soon').textContent = projects.filter(function(p) { return projectMatchesFilter(p, 'soon'); }).length;
+            document.getElementById('pj-sum-won').textContent = projects.filter(function(p) { return p.status === '수주'; }).length;
+
+            var list = projects.filter(function(p) { return projectMatchesFilter(p, filter) && projectMatchesSearch(p, term); });
+            list.sort(function(a, b) {
+                if (sort === 'recent') return (b.createdAt || '').localeCompare(a.createdAt || '');
+                if (sort === 'budget') return (Number(b.budget) || 0) - (Number(a.budget) || 0);
+                if (sort === 'name') return (a.name || '').localeCompare(b.name || '', 'ko');
+                // 다음 일정순: 다가오는 일정 → 지난 일정 → 일정 없음
+                var da = pjDaysUntil(a.nextDate), db = pjDaysUntil(b.nextDate);
+                var ka = da === null ? 1e9 : (da < 0 ? 1e6 - da : da);
+                var kb = db === null ? 1e9 : (db < 0 ? 1e6 - db : db);
+                return ka - kb;
+            });
+
+            var countLabel = document.getElementById('project-count-label');
+            if (countLabel) countLabel.textContent = '(' + list.length + '건)';
+
+            if (!list.length) {
+                container.innerHTML = projects.length
+                    ? '<div class="empty-state"><h3>조건에 맞는 사업이 없습니다</h3><p>검색어나 필터를 바꿔보세요</p></div>'
+                    : '<div class="empty-state"><h3>등록된 사업이 없습니다</h3><p>관심 있는 무기체계·연구과제를 등록하고 관련 고객을 연결해 보세요</p>' +
+                      '<button class="btn btn-primary" style="margin-top: 12px;" onclick="openProjectModal()">+ 첫 사업 등록</button></div>';
+                return;
+            }
+
+            container.innerHTML = list.map(function(p) {
+                var sub = [p.category, p.agency, p.stage].filter(Boolean).map(mmEscape).join(' · ');
+                var meta = [];
+                var budget = pjFormatBudget(p.budget);
+                if (budget) meta.push('<span>💰 ' + budget + '</span>');
+                if (p.startDate || p.endDate) meta.push('<span>📅 ' + pjFormatMonth(p.startDate) + ' ~ ' + pjFormatMonth(p.endDate) + '</span>');
+                if (p.nextDate || p.nextTitle) {
+                    var days = pjDaysUntil(p.nextDate);
+                    var soon = days !== null && days >= 0 && days <= 7;
+                    meta.push('<span class="pj-next' + (soon ? ' soon' : '') + '">⏰ ' +
+                        (p.nextDate ? pjDdayLabel(days) + ' ' : '') + mmEscape(p.nextTitle || '') +
+                        (p.nextDate ? ' <span style="color: var(--text-tertiary); font-weight: 400;">(' + p.nextDate.slice(5).replace('-', '/') + ')</span>' : '') + '</span>');
+                }
+                var people = (p.members || []).map(function(m) {
+                    var c = customers.find(function(x) { return x.id === m.customerId; });
+                    if (!c) return '';
+                    return '<button type="button" class="pj-chip" onclick="event.stopPropagation(); editCustomer(' + c.id + ')">' +
+                        (keyCustomerIds.includes(c.id) ? '⭐ ' : '') + mmEscape(pjCustomerLabel(c)) +
+                        (m.role ? ' <small>' + mmEscape(m.role) + '</small>' : '') + '</button>';
+                }).join('');
+                return '<div class="pj-card' + (PJ_CLOSED.includes(p.status) ? ' closed' : '') + '" onclick="openProjectModal(' + p.id + ')">' +
+                    '<div class="pj-card-head"><div style="min-width: 0;"><div class="pj-card-title">' + mmEscape(p.name) + '</div>' +
+                    (sub ? '<div class="pj-card-sub">' + sub + '</div>' : '') + '</div>' + pjStatusPill(p.status) + '</div>' +
+                    (meta.length ? '<div class="pj-meta">' + meta.join('') + '</div>' : '') +
+                    (people ? '<div class="pj-people">' + people + '</div>' : '') +
+                    '</div>';
+            }).join('');
+        }
+
+        function openProjectModal(id, presetCustomerId) {
+            var p = id ? projects.find(function(x) { return x.id === id; }) : null;
+            currentProjectId = p ? p.id : null;
+            document.getElementById('project-modal-title').textContent = p ? '사업 정보' : '사업 추가';
+            document.getElementById('pj-name').value = p ? p.name || '' : '';
+            document.getElementById('pj-category').value = p ? p.category || '' : '';
+            document.getElementById('pj-agency').value = p ? p.agency || '' : '';
+            document.getElementById('pj-stage').value = p ? p.stage || '' : '';
+            document.getElementById('pj-status').value = p ? p.status || '관심' : '관심';
+            document.getElementById('pj-budget').value = p && p.budget !== undefined ? p.budget : '';
+            document.getElementById('pj-start').value = p ? p.startDate || '' : '';
+            document.getElementById('pj-end').value = p ? p.endDate || '' : '';
+            document.getElementById('pj-next-date').value = p ? p.nextDate || '' : '';
+            document.getElementById('pj-next-title').value = p ? p.nextTitle || '' : '';
+            document.getElementById('pj-notes').value = p ? p.notes || '' : '';
+            document.getElementById('pj-member-search').value = '';
+            document.getElementById('pj-member-results').innerHTML = '';
+            document.getElementById('pj-log-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('pj-log-note').value = '';
+            document.getElementById('pj-delete-btn').style.display = p ? '' : 'none';
+
+            pjDraft = {
+                members: p ? (p.members || []).map(function(m) { return { customerId: m.customerId, role: m.role || '' }; }) : [],
+                log: p ? (p.log || []).map(function(l) { return { date: l.date, note: l.note }; }) : []
+            };
+            if (!p && presetCustomerId) pjDraft.members.push({ customerId: presetCustomerId, role: '' });
+
+            // 기관 입력 도움말: 기존 사업·고객의 기관명 + 자주 쓰는 기관
+            var agencies = {};
+            PJ_DEFAULT_AGENCIES.forEach(function(a) { agencies[a] = true; });
+            projects.forEach(function(x) { if (x.agency) agencies[x.agency] = true; });
+            customers.forEach(function(c) { if (c.organization && inferService(c) !== '기업') agencies[c.organization] = true; });
+            document.getElementById('pj-agency-list').innerHTML = Object.keys(agencies).map(function(a) {
+                return '<option value="' + mmEscape(a) + '"></option>';
+            }).join('');
+
+            renderProjectMembers();
+            renderProjectLog();
+            var modal = document.getElementById('project-modal');
+            modal.classList.add('active');
+            modal.querySelector('.modal-content').scrollTop = 0;
+        }
+
+        function closeProjectModal() {
+            document.getElementById('project-modal').classList.remove('active');
+        }
+
+        function renderProjectMemberSearch() {
+            var term = document.getElementById('pj-member-search').value.trim();
+            var box = document.getElementById('pj-member-results');
+            if (!term) { box.innerHTML = ''; return; }
+            var taken = pjDraft.members.map(function(m) { return m.customerId; });
+            var hits = customers.filter(function(c) {
+                return !taken.includes(c.id) && customerMatchesSearch(c, term);
+            }).slice(0, 8);
+            box.innerHTML = hits.length ? hits.map(function(c) {
+                var sub = [c.organization, c.position].filter(Boolean).join(' · ');
+                return '<button type="button" onclick="addProjectMember(' + c.id + ')">' + mmEscape(pjCustomerLabel(c)) +
+                    (sub ? '<small>' + mmEscape(sub) + '</small>' : '') + '</button>';
+            }).join('') : '<div style="padding: 10px 12px; font-size: 13px; color: var(--text-tertiary);">일치하는 고객이 없습니다</div>';
+        }
+
+        function addProjectMember(customerId) {
+            pjDraft.members.push({ customerId: customerId, role: '' });
+            document.getElementById('pj-member-search').value = '';
+            document.getElementById('pj-member-results').innerHTML = '';
+            renderProjectMembers();
+        }
+
+        function removeProjectMember(index) {
+            pjDraft.members.splice(index, 1);
+            renderProjectMembers();
+        }
+
+        function setProjectMemberRole(index, role) {
+            if (pjDraft.members[index]) pjDraft.members[index].role = role;
+        }
+
+        function renderProjectMembers() {
+            var box = document.getElementById('pj-member-list');
+            var rows = pjDraft.members.map(function(m, i) {
+                var c = customers.find(function(x) { return x.id === m.customerId; });
+                if (!c) return '';
+                var sub = [c.organization, c.department, c.position].filter(Boolean).join(' · ');
+                var roles = PJ_ROLES.slice();
+                if (m.role && !roles.includes(m.role)) roles.push(m.role);
+                return '<div class="pj-member-row">' +
+                    '<div class="pj-member-name">' + (keyCustomerIds.includes(c.id) ? '⭐ ' : '') + mmEscape(pjCustomerLabel(c)) +
+                    (sub ? '<small>' + mmEscape(sub) + '</small>' : '') + '</div>' +
+                    '<select onchange="setProjectMemberRole(' + i + ', this.value)"><option value="">역할 선택</option>' +
+                    roles.map(function(r) { return '<option value="' + mmEscape(r) + '"' + (r === m.role ? ' selected' : '') + '>' + mmEscape(r) + '</option>'; }).join('') +
+                    '</select>' +
+                    '<button type="button" class="pj-remove" onclick="removeProjectMember(' + i + ')" aria-label="제외">&times;</button></div>';
+            }).join('');
+            box.innerHTML = rows || '<div style="font-size: 13px; color: var(--text-tertiary);">아직 연결된 고객이 없습니다.</div>';
+        }
+
+        function addProjectLogEntry() {
+            var date = document.getElementById('pj-log-date').value;
+            var note = document.getElementById('pj-log-note').value.trim();
+            if (!date || !note) {
+                alert('날짜와 내용을 입력해주세요.');
+                return;
+            }
+            pjDraft.log.push({ date: date, note: note });
+            document.getElementById('pj-log-note').value = '';
+            renderProjectLog();
+        }
+
+        function removeProjectLogEntry(index) {
+            pjDraft.log.splice(index, 1);
+            renderProjectLog();
+        }
+
+        function renderProjectLog() {
+            var box = document.getElementById('pj-log-list');
+            if (!pjDraft.log.length) {
+                box.innerHTML = '<div style="font-size: 13px; color: var(--text-tertiary);">아직 진행 기록이 없습니다.</div>';
+                return;
+            }
+            var order = pjDraft.log.map(function(l, i) { return i; }).sort(function(a, b) {
+                return (pjDraft.log[b].date || '').localeCompare(pjDraft.log[a].date || '');
+            });
+            box.innerHTML = order.map(function(i) {
+                var l = pjDraft.log[i];
+                return '<div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px;">' +
+                    '<span><strong>' + mmEscape(l.date) + '</strong> — ' + mmEscape(l.note) + '</span>' +
+                    '<button type="button" class="pj-remove" onclick="removeProjectLogEntry(' + i + ')">&times;</button></div>';
+            }).join('');
+        }
+
+        function refreshAfterProjectChange() {
+            renderProjectList();
+            if (document.getElementById('edit-modal').classList.contains('active')) renderCustomerProjects();
+            var customersSection = document.getElementById('customers-section');
+            if (customersSection && customersSection.classList.contains('active')) searchCustomers();
+            var net = document.getElementById('network-section');
+            if (net && net.classList.contains('active')) changeVisualizationType();
+            checkAndUpdateTodos();
+        }
+
+        function saveProject(e) {
+            if (e) e.preventDefault();
+            var name = document.getElementById('pj-name').value.trim();
+            if (!name) {
+                alert('사업명을 입력해주세요.');
+                return;
+            }
+            // 작성 중인 진행 기록을 '기록 추가' 없이 저장해도 잃지 않게 한다
+            var pendingNote = document.getElementById('pj-log-note').value.trim();
+            var pendingDate = document.getElementById('pj-log-date').value;
+            if (pendingNote && pendingDate) pjDraft.log.push({ date: pendingDate, note: pendingNote });
+
+            var budgetRaw = document.getElementById('pj-budget').value;
+            var data = {
+                name: name,
+                category: document.getElementById('pj-category').value,
+                agency: document.getElementById('pj-agency').value.trim(),
+                stage: document.getElementById('pj-stage').value,
+                status: document.getElementById('pj-status').value || '관심',
+                budget: budgetRaw === '' ? '' : Number(budgetRaw),
+                startDate: document.getElementById('pj-start').value,
+                endDate: document.getElementById('pj-end').value,
+                nextDate: document.getElementById('pj-next-date').value,
+                nextTitle: document.getElementById('pj-next-title').value.trim(),
+                notes: document.getElementById('pj-notes').value,
+                members: pjDraft.members.filter(function(m) {
+                    return customers.some(function(c) { return c.id === m.customerId; });
+                }),
+                log: pjDraft.log
+            };
+
+            if (currentProjectId) {
+                var p = projects.find(function(x) { return x.id === currentProjectId; });
+                Object.assign(p, data, { updatedAt: new Date().toISOString() });
+            } else {
+                data.id = Date.now();
+                data.createdAt = new Date().toISOString();
+                projects.push(data);
+            }
+            saveProjects();
+            closeProjectModal();
+            refreshAfterProjectChange();
+        }
+
+        function deleteProject() {
+            if (!currentProjectId) return;
+            var p = projects.find(function(x) { return x.id === currentProjectId; });
+            if (!p || !confirm('\'' + p.name + '\' 사업을 삭제할까요?\n연결된 고객 정보는 삭제되지 않습니다.')) return;
+            projects = projects.filter(function(x) { return x.id !== currentProjectId; });
+            saveProjects();
+            closeProjectModal();
+            refreshAfterProjectChange();
+        }
+
+        // 고객 상세 화면의 '관여 사업' 영역
+        function renderCustomerProjects() {
+            var box = document.getElementById('customer-project-list');
+            if (!box || !currentEditId) return;
+            var mine = getProjectsForCustomer(currentEditId);
+            box.innerHTML = mine.length ? mine.map(function(p) {
+                var m = p.members.find(function(x) { return x.customerId === currentEditId; });
+                var days = pjDaysUntil(p.nextDate);
+                return '<div class="pj-linked-item" onclick="openProjectModal(' + p.id + ')">' +
+                    '<div style="min-width: 0;"><div style="font-weight: 600;">' + mmEscape(p.name) + '</div>' +
+                    '<div style="font-size: 12px; color: var(--text-secondary);">' +
+                    [m && m.role, p.agency, p.nextTitle ? (p.nextDate ? pjDdayLabel(days) + ' ' : '') + p.nextTitle : ''].filter(Boolean).map(mmEscape).join(' · ') +
+                    '</div></div>' + pjStatusPill(p.status) + '</div>';
+            }).join('') : '<div style="font-size: 13px; color: var(--text-tertiary);">연결된 사업이 없습니다.</div>';
+
+            var sel = document.getElementById('customer-project-select');
+            var others = projects.filter(function(p) { return !mine.includes(p); });
+            sel.innerHTML = '<option value="">' + (others.length ? '기존 사업에 연결…' : '연결할 사업 없음') + '</option>' +
+                others.map(function(p) { return '<option value="' + p.id + '">' + mmEscape(p.name) + '</option>'; }).join('');
+            var roleSel = document.getElementById('customer-project-role');
+            if (!roleSel.options.length) {
+                roleSel.innerHTML = '<option value="">역할</option>' + PJ_ROLES.map(function(r) { return '<option value="' + r + '">' + r + '</option>'; }).join('');
+            }
+            roleSel.value = '';
+        }
+
+        function linkCustomerToProject() {
+            var pid = Number(document.getElementById('customer-project-select').value);
+            if (!pid || !currentEditId) return;
+            var p = projects.find(function(x) { return x.id === pid; });
+            if (!p) return;
+            p.members = p.members || [];
+            p.members.push({ customerId: currentEditId, role: document.getElementById('customer-project-role').value });
+            saveProjects();
+            refreshAfterProjectChange();
+        }
+
+        function openNewProjectForCurrentCustomer() {
+            openProjectModal(null, currentEditId);
+        }
+
         // 데이터 내보내기
         function exportData() {
             var exportData = {
                 customers: customers,
                 todos: todos,
                 keyCustomerIds: keyCustomerIds,
+                projects: projects,
                 exportDate: new Date().toISOString(),
                 version: "5.2"
             };
@@ -3118,8 +3837,9 @@
                         customers = importedData.customers;
                         todos = importedData.todos || [];
                         keyCustomerIds = importedData.keyCustomerIds || [];
+                        projects = importedData.projects || [];
                         
-                        message = '데이터를 덮어썼습니다.\n고객: ' + customers.length + '명\n할 일: ' + todos.length + '개\n핵심 고객: ' + keyCustomerIds.length + '명';
+                        message = '데이터를 덮어썼습니다.\n고객: ' + customers.length + '명\n할 일: ' + todos.length + '개\n핵심 고객: ' + keyCustomerIds.length + '명\n사업: ' + projects.length + '건';
                     } else {
                         var beforeCount = customers.length;
                         var beforeTodoCount = todos.length;
@@ -3129,10 +3849,28 @@
                             return !existingNames.includes(c.name);
                         });
                         
+                        // 가져온 파일의 고객 ID → 이 기기의 고객 ID (사업의 관련 고객 연결을 유지하기 위함)
+                        var idMap = {};
+                        importedData.customers.forEach(function(c) {
+                            var existing = customers.find(function(x) { return x.name === c.name; });
+                            if (existing) idMap[c.id] = existing.id;
+                        });
                         var maxId = customers.length > 0 ? Math.max.apply(null, customers.map(function(c) { return c.id; })) : 0;
                         newCustomers.forEach(function(c, index) {
-                            c.id = maxId + index + 1;
+                            var newId = maxId + index + 1;
+                            idMap[c.id] = newId;
+                            c.id = newId;
                         });
+                        if (Array.isArray(importedData.projects)) {
+                            var existingProjectNames = projects.map(function(p) { return p.name; });
+                            importedData.projects.forEach(function(p, index) {
+                                if (existingProjectNames.includes(p.name)) return;
+                                p.id = Date.now() + index;
+                                p.members = (p.members || []).filter(function(m) { return idMap[m.customerId] !== undefined; })
+                                    .map(function(m) { return { customerId: idMap[m.customerId], role: m.role || '' }; });
+                                projects.push(p);
+                            });
+                        }
                         
                         customers = customers.concat(newCustomers);
                         
@@ -3162,11 +3900,13 @@
                     localStorage.setItem('customers', JSON.stringify(customers));
                     localStorage.setItem('todos', JSON.stringify(todos));
                     localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
+                    localStorage.setItem('projects', JSON.stringify(projects));
                     
                     triggerAutoSync();
                     
                     closeImportModal();
                     renderCustomerList();
+                    renderProjectList();
                     checkAndUpdateTodos();
                     
                     alert(message);
@@ -3190,7 +3930,8 @@
         var MM_HUB_STYLE = {
             class:  { color: '#3a5ba9', icon: '🎖', label: '동기' },
             school: { color: '#2f8f6f', icon: '🎓', label: '동문' },
-            org:    { color: '#b8862e', icon: '🏢', label: '같은 기관' }
+            org:    { color: '#b8862e', icon: '🏢', label: '같은 기관' },
+            project: { color: '#1f7a8c', icon: '📁', label: '사업 참여' }
         };
         var MM_DIRECT_COLOR = '#3a5ba9';
         var MM_GENERAL_RANKS = ['대장', '중장', '소장', '준장'];
@@ -3240,6 +3981,16 @@
                 }
                 if (c.school && c.school.trim()) addToGroup('school', c.school.trim(), c);
                 if (c.organization && c.organization.trim().length > 1) addToGroup('org', c.organization.trim(), c);
+            });
+            // 같은 사업에 연결된 고객들 (실주·보류된 사업은 제외)
+            var inGraph = {};
+            persons.forEach(function(c) { inGraph[c.id] = true; });
+            projects.forEach(function(p) {
+                if (PJ_CLOSED.includes(p.status)) return;
+                var gid = 'h:project:' + p.id;
+                var label = p.name.length > 16 ? p.name.slice(0, 15) + '…' : p.name;
+                groups[gid] = { id: gid, kind: 'hub', type: 'project', label: label, projectId: p.id,
+                    members: (p.members || []).filter(function(m) { return inGraph[m.customerId]; }).map(function(m) { return 'p:' + m.customerId; }) };
             });
             Object.keys(groups).forEach(function(gid) {
                 var grp = groups[gid];
@@ -3523,7 +4274,7 @@
                 '<span><i style="background: #c0567a;"></i>대학교</span>' +
                 '<span><i style="background: #fff; box-shadow: 0 0 0 2px #d64545;"></i>핵심 고객</span>' +
                 '<span><i class="line" style="background: ' + MM_DIRECT_COLOR + ';"></i>직접 등록한 관계</span>' +
-                '<span><i class="line" style="background: #c3c8cf;"></i>동기·동문·같은 기관</span>' +
+                '<span><i class="line" style="background: #c3c8cf;"></i>동기·동문·같은 기관·사업</span>' +
                 '</div>';
             container.innerHTML = html;
 
@@ -3781,6 +4532,8 @@
             html += '<div class="mm-info-actions">';
             if (n.kind === 'person') {
                 html += '<button class="btn btn-primary" data-mm-action="edit" data-mm-id="' + idAttr + '">상세보기/수정</button>';
+            } else if (n.type === 'project') {
+                html += '<button class="btn btn-primary" data-mm-action="project" data-mm-id="' + idAttr + '">사업 보기</button>';
             }
             if (!isFocus) {
                 html += '<button class="btn btn-secondary" data-mm-action="focus" data-mm-id="' + idAttr + '">' + (n.kind === 'hub' ? '이 그룹 중심으로' : '이 사람 중심으로') + '</button>';
@@ -3803,6 +4556,9 @@
             } else if (action === 'edit') {
                 var node = mmGraph.g.nodes[id];
                 if (node && node.customer) editCustomer(node.customer.id);
+            } else if (action === 'project') {
+                var hub = mmGraph.g.nodes[id];
+                if (hub && hub.projectId) openProjectModal(hub.projectId);
             }
         }
 
@@ -3971,7 +4727,7 @@
                 { kind: 'dot', color: '#c0567a', label: '대학교' },
                 { kind: 'ring', color: '#d64545', label: '핵심 고객' },
                 { kind: 'line', color: MM_DIRECT_COLOR, label: '직접 등록한 관계' },
-                { kind: 'line', color: '#c3c8cf', label: '동기·동문·같은 기관' }
+                { kind: 'line', color: '#c3c8cf', label: '동기·동문·같은 기관·사업' }
             ];
             ctx.textAlign = 'left';
             ctx.font = '400 28px ' + MM_PDF_FONT;
@@ -4001,7 +4757,7 @@
                 }
                 ctx.fillStyle = '#6e6e73';
                 ctx.fillText(item.label, lx, ly);
-                lx += ctx.measureText(item.label).width + 32;
+                lx += ctx.measureText(item.label).width + 26;
             });
 
             return { canvas: canvas, landscape: landscape };
@@ -4954,6 +5710,23 @@
                 }
             });
 
+            // 7일 안에 다가오는 사업 일정
+            projects.forEach(function(p) {
+                if (PJ_CLOSED.includes(p.status) || !p.nextDate) return;
+                var days = pjDaysUntil(p.nextDate);
+                if (days === null || days < 0 || days > 7) return;
+                var task = '[' + p.name + '] ' + (p.nextTitle || '사업 일정');
+                if (todos.some(function(t) { return !t.completed && t.task === task; })) return;
+                suggestions.push({
+                    task: task,
+                    customerId: null,
+                    priority: days <= 2 ? 'urgent' : 'high',
+                    reason: '사업 일정 ' + pjDdayLabel(days),
+                    type: 'project',
+                    deadline: p.nextDate
+                });
+            });
+
             var container = document.getElementById('suggestions-list');
             if (suggestions.length === 0) {
                 container.innerHTML = '<div class="empty-todo">모든 항목이 양호합니다 👍</div>';
@@ -4980,7 +5753,7 @@
                 task: suggestion.task,
                 customerId: suggestion.customerId || null,
                 priority: suggestion.priority,
-                deadline: '',
+                deadline: suggestion.deadline || '',
                 notes: '자동 제안으로 추가됨: ' + suggestion.reason,
                 completed: false,
                 isAuto: true,
@@ -4989,6 +5762,7 @@
             
             todos.push(todo);
             localStorage.setItem('todos', JSON.stringify(todos));
+            triggerAutoSync();
             renderTodoList();
             alert('할 일이 추가되었습니다.');
         }
@@ -5292,12 +6066,17 @@
             if (Array.isArray(data.customers)) customers = data.customers;
             if (Array.isArray(data.todos)) todos = data.todos;
             if (Array.isArray(data.keyCustomerIds)) keyCustomerIds = data.keyCustomerIds;
+            // 사업 기능이 없는 이전 버전 앱이 올린 데이터에는 projects가 없다.
+            // 그때는 이 기기의 사업 목록을 지우지 않고 유지한다(다음 저장 때 다시 올라간다).
+            if (Array.isArray(data.projects)) projects = data.projects;
 
             localStorage.setItem('customers', JSON.stringify(customers));
             localStorage.setItem('todos', JSON.stringify(todos));
             localStorage.setItem('keyCustomerIds', JSON.stringify(keyCustomerIds));
+            localStorage.setItem('projects', JSON.stringify(projects));
 
             renderCustomerList();
+            renderProjectList();
             renderKeyCustomers();
             renderTodoList();
 
@@ -5332,7 +6111,8 @@
                 data: {
                     customers: customers,
                     todos: todos,
-                    keyCustomerIds: keyCustomerIds
+                    keyCustomerIds: keyCustomerIds,
+                    projects: projects
                 },
                 updated_at: new Date().toISOString()
             };
@@ -5445,7 +6225,7 @@
                     // 처음 로그인하는 경우 — 현재 데이터를 서버의 시작 데이터로 업로드
                     const payload = {
                         room: SYNC_ROOM,
-                        data: { customers: customers, todos: todos, keyCustomerIds: keyCustomerIds },
+                        data: { customers: customers, todos: todos, keyCustomerIds: keyCustomerIds, projects: projects },
                         updated_at: new Date().toISOString()
                     };
                     const { error: pushError } = await cloudClient.from('crm_sync').upsert(payload, { onConflict: 'room' });
