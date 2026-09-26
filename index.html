@@ -1045,6 +1045,7 @@
                     <button onclick="closeMoreMenu(); openSyncModal();">동기화</button>
                     <button onclick="closeMoreMenu(); exportData();">데이터 내보내기</button>
                     <button onclick="closeMoreMenu(); openImportModal();">데이터 가져오기</button>
+                    <button onclick="closeMoreMenu(); openCleanupModal();">소속 정보 정리</button>
                 </div>
             </div>
         </div>
@@ -1648,6 +1649,26 @@
                 </div>
 
                 <button class="btn btn-primary" onclick="importData()" style="width: 100%; margin-top: 20px;">데이터 가져오기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 소속 정보 정리 모달 -->
+    <div id="cleanup-modal" class="modal">
+        <div class="modal-content" style="max-width: 640px;">
+            <div class="modal-header">
+                <h2>소속 정보 정리</h2>
+                <button class="close-btn" onclick="closeCleanupModal()">&times;</button>
+            </div>
+            <div style="padding: 20px;">
+                <p style="color: var(--text-secondary); margin-bottom: 16px; line-height: 1.6;">
+                    이미 등록된 고객의 소속 정보를 새 입력 방식에 맞게 정리합니다.<br>
+                    · 기관명에 "회사;부서"처럼 붙어 저장된 값을 기업명/부서로 나눕니다<br>
+                    · 소속 구분이 비어 있거나 '기타'인 고객은 기관명으로 소속 구분을 채웁니다 (기업, 대학교, 군, 정출연, 공무원)<br>
+                    바꿀 항목을 확인하고, 원하지 않는 항목은 체크를 해제하세요.
+                </p>
+                <div id="cleanup-list"></div>
+                <div id="cleanup-actions" style="display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap;"></div>
             </div>
         </div>
     </div>
@@ -2908,6 +2929,135 @@
         function closeImportModal() {
             document.getElementById('import-modal').classList.remove('active');
             document.getElementById('import-file').value = '';
+        }
+
+        // ---- 소속 정보 정리 (기존 데이터를 기업명/부서, 학교명/학과 구조에 맞춤) ----
+        var CLEANUP_BACKUP_KEY = 'customers_backup_before_cleanup';
+        var cleanupChanges = [];
+
+        function computeCleanupChange(c) {
+            var after = { organization: c.organization || '', department: c.department || '', service: c.service || '' };
+            if (after.organization.indexOf(';') !== -1) {
+                var parts = after.organization.split(';').map(function(p) { return p.trim(); }).filter(Boolean);
+                after.organization = parts[0] || '';
+                var rest = parts.slice(1).join(' ');
+                // 기존 부서가 있으면 지우지 않고 앞에 붙인다
+                if (rest && after.department.indexOf(rest) === -1) {
+                    after.department = after.department ? rest + ' ' + after.department : rest;
+                }
+            }
+            if (!after.service || after.service === '기타') {
+                var guessed = inferService({ service: '', organization: after.organization, department: after.department });
+                if (guessed && guessed !== '기타') after.service = guessed;
+            }
+            var changed = ['organization', 'department', 'service'].filter(function(k) { return after[k] !== (c[k] || ''); });
+            return changed.length ? { id: c.id, after: after, fields: changed } : null;
+        }
+
+        function openCleanupModal() {
+            cleanupChanges = customers.map(computeCleanupChange).filter(Boolean);
+            var labels = { organization: '기관명', department: '부서', service: '소속 구분' };
+            var list = document.getElementById('cleanup-list');
+            var actions = document.getElementById('cleanup-actions');
+            var html = '';
+            if (cleanupChanges.length === 0) {
+                html = '<div class="empty-state" style="padding: 24px;"><h3>정리할 항목이 없습니다</h3><p>모든 고객의 소속 정보가 이미 정리되어 있습니다.</p></div>';
+            } else {
+                html += '<label style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px; font-weight: 600;">' +
+                    '<input type="checkbox" checked onchange="document.querySelectorAll(\'.cleanup-check\').forEach(function(el) { el.checked = this.checked; }, this); updateCleanupCount();"> 전체 선택 (' + cleanupChanges.length + '명)</label>';
+                html += '<div style="max-height: 50vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px;">';
+                cleanupChanges.forEach(function(ch, i) {
+                    var c = customers.find(function(x) { return x.id === ch.id; });
+                    html += '<label style="display: flex; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); align-items: flex-start;">' +
+                        '<input type="checkbox" class="cleanup-check" data-index="' + i + '" checked onchange="updateCleanupCount()" style="margin-top: 3px;">' +
+                        '<div style="flex: 1; min-width: 0;"><div style="font-weight: 600;">' + mmEscape((c.rank ? c.rank + ' ' : '') + c.name) + '</div>';
+                    ch.fields.forEach(function(k) {
+                        html += '<div style="font-size: 13px; color: var(--text-secondary); word-break: break-all;">' + labels[k] + ': ' +
+                            '<span style="text-decoration: line-through;">' + (mmEscape(c[k]) || '(비어 있음)') + '</span> → ' +
+                            '<strong style="color: var(--text-primary);">' + (mmEscape(ch.after[k]) || '(비어 있음)') + '</strong></div>';
+                    });
+                    html += '</div></label>';
+                });
+                html += '</div>';
+            }
+            list.innerHTML = html;
+
+            var btns = '';
+            if (cleanupChanges.length) {
+                btns += '<button class="btn btn-primary" id="cleanup-apply-btn" onclick="applyCleanup()" style="flex: 1;">선택 항목 정리</button>';
+            }
+            var backup = null;
+            try { backup = JSON.parse(localStorage.getItem(CLEANUP_BACKUP_KEY) || 'null'); } catch (e) {}
+            if (backup && backup.savedAt) {
+                var d = new Date(backup.savedAt);
+                btns += '<button class="btn btn-secondary" onclick="undoCleanup()" style="flex: 1;">마지막 정리 되돌리기 (' +
+                    (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ')</button>';
+            }
+            actions.innerHTML = btns;
+            updateCleanupCount();
+            document.getElementById('cleanup-modal').classList.add('active');
+        }
+
+        function closeCleanupModal() {
+            document.getElementById('cleanup-modal').classList.remove('active');
+        }
+
+        function updateCleanupCount() {
+            var btn = document.getElementById('cleanup-apply-btn');
+            if (!btn) return;
+            var n = document.querySelectorAll('.cleanup-check:checked').length;
+            btn.textContent = '선택 항목 정리 (' + n + '명)';
+            btn.disabled = n === 0;
+        }
+
+        function afterCustomerBulkChange() {
+            localStorage.setItem('customers', JSON.stringify(customers));
+            triggerAutoSync();
+            renderCustomerList();
+            renderKeyCustomers();
+            var net = document.getElementById('network-section');
+            if (net && net.classList.contains('active')) changeVisualizationType();
+        }
+
+        function applyCleanup() {
+            var picked = Array.prototype.map.call(document.querySelectorAll('.cleanup-check:checked'), function(el) {
+                return cleanupChanges[Number(el.dataset.index)];
+            });
+            if (!picked.length) return;
+            // 정리 전 상태를 이 기기에 보관해 두어 되돌릴 수 있게 한다
+            var before = picked.map(function(ch) {
+                var c = customers.find(function(x) { return x.id === ch.id; });
+                return { id: ch.id, organization: c.organization || '', department: c.department || '', service: c.service || '' };
+            });
+            try {
+                localStorage.setItem(CLEANUP_BACKUP_KEY, JSON.stringify({ savedAt: new Date().toISOString(), before: before }));
+            } catch (e) {}
+            picked.forEach(function(ch) {
+                var c = customers.find(function(x) { return x.id === ch.id; });
+                if (!c) return;
+                ch.fields.forEach(function(k) { c[k] = ch.after[k]; });
+            });
+            afterCustomerBulkChange();
+            alert(picked.length + '명의 소속 정보를 정리했습니다.');
+            openCleanupModal();
+        }
+
+        function undoCleanup() {
+            var backup = null;
+            try { backup = JSON.parse(localStorage.getItem(CLEANUP_BACKUP_KEY) || 'null'); } catch (e) {}
+            if (!backup || !backup.before) return;
+            if (!confirm('마지막으로 정리한 ' + backup.before.length + '명의 기관명·부서·소속 구분을 정리 전으로 되돌릴까요?')) return;
+            backup.before.forEach(function(b) {
+                var c = customers.find(function(x) { return x.id === b.id; });
+                if (!c) return;
+                c.organization = b.organization;
+                c.department = b.department;
+                c.service = b.service;
+            });
+            localStorage.removeItem(CLEANUP_BACKUP_KEY);
+            afterCustomerBulkChange();
+            alert('정리 전으로 되돌렸습니다.');
+            openCleanupModal();
         }
 
         // 데이터 내보내기
