@@ -1099,6 +1099,7 @@
                                 <option value="공무원">공무원</option>
                                 <option value="기업">기업</option>
                                 <option value="핵심고객">핵심 고객만</option>
+                                <option value="미분류">소속 미분류</option>
                             </optgroup>
                         </select>
                     </div>
@@ -1406,6 +1407,7 @@
                                 <option value="기업">기업만</option>
                                 <option value="중장">중장만</option>
                                 <option value="핵심고객">핵심고객만</option>
+                                <option value="미분류">소속 미분류</option>
                             </optgroup>
                         </select>
                     </div>
@@ -2367,9 +2369,9 @@
         var GOV_ORG_KEYWORDS = ['방위사업청', '방사청', '국방부', '합동참모', '합참', '국회', '대통령실', '병무청'];
 
         function inferService(c) {
-            if (c.service) return c.service;
-            var org = (c.organization || '').trim();
-            if (!org) return '';
+            if (c.service && c.service !== '기타') return c.service;
+            var org = (c.organization || c.department || '').trim();
+            if (!org) return c.service || '';
             var military = ['육군', '해군', '공군', '해병대'].find(function(s) { return org.includes(s.replace('대', '')); });
             if (military) return military;
             var research = Object.keys(SERVICE_ALIASES).find(function(code) {
@@ -2433,6 +2435,7 @@
             var filterBy = filterSelect ? filterSelect.value : 'all';
 
             var displayCustomers = getFilteredCustomers(filterBy || 'all');
+            updateFilterCounts('customer-filter');
 
             if (searchTerm) {
                 displayCustomers = displayCustomers.filter(function(c) { return customerMatchesSearch(c, searchTerm); });
@@ -2444,7 +2447,9 @@
             if (countLabel) countLabel.textContent = '(' + displayCustomers.length + '명)';
 
             if (displayCustomers.length === 0) {
-                container.innerHTML = '<div class="empty-state"><h3>' + (searchTerm ? '검색 결과가 없습니다' : '등록된 고객이 없습니다') + '</h3><p>' + (searchTerm ? '다른 검색어를 입력해주세요' : '새 고객을 추가해주세요') + '</p></div>';
+                container.innerHTML = searchTerm
+                    ? '<div class="empty-state"><h3>검색 결과가 없습니다</h3><p>다른 검색어를 입력해주세요</p></div>'
+                    : filteredEmptyHtml('customer-filter');
                 return;
             }
 
@@ -2463,7 +2468,8 @@
                     (customer.age ? ' (' + customer.age + '세)' : '') +
                     keyBadge +
                     '</h3><div class="customer-info">' +
-                    (customer.service ? '<span><strong>•</strong> ' + customer.service + '</span>' : '') +
+                    (customer.service ? '<span><strong>•</strong> ' + customer.service + '</span>' :
+                        (inferService(customer) ? '<span style="color: var(--text-secondary);" title="기관명으로 자동 분류"><strong>•</strong> ' + inferService(customer) + '(자동)</span>' : '')) +
                     (customer.position ? '<span><strong>•</strong> ' + customer.position + '</span>' : '') +
                     (customer.department ? '<span><strong>•</strong> ' + customer.department + '</span>' : '') +
                     (customer.organization ? '<span><strong>•</strong> ' + customer.organization + '</span>' : '') +
@@ -2604,7 +2610,8 @@
                         (customer.age ? ' (' + customer.age + '세)' : '') + 
                         '<span class="viz-card-badge" style="background: #e53e3e; color: white; margin-left: 8px;">⭐</span>' +
                         '</h3><div class="customer-info">' +
-                        (customer.service ? '<span><strong>•</strong> ' + customer.service + '</span>' : '') +
+                        (customer.service ? '<span><strong>•</strong> ' + customer.service + '</span>' :
+                        (inferService(customer) ? '<span style="color: var(--text-secondary);" title="기관명으로 자동 분류"><strong>•</strong> ' + inferService(customer) + '(자동)</span>' : '')) +
                         (customer.position ? '<span><strong>•</strong> ' + customer.position + '</span>' : '') +
                         (customer.department ? '<span><strong>•</strong> ' + customer.department + '</span>' : '') +
                         (customer.organization ? '<span><strong>•</strong> ' + customer.organization + '</span>' : '') +
@@ -3209,7 +3216,7 @@
             var container = document.getElementById('network-graph');
             var persons = getFilteredCustomers(filter);
             if (persons.length === 0) {
-                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3><p>필터를 변경하거나 새 고객을 추가해주세요</p></div>';
+                container.innerHTML = filteredEmptyHtml('viz-filter');
                 return;
             }
 
@@ -3906,7 +3913,8 @@
         function changeVisualizationType() {
             var type = document.getElementById('viz-type') ? document.getElementById('viz-type').value : 'grid';
             var filter = document.getElementById('viz-filter') ? document.getElementById('viz-filter').value : 'all';
-            
+            updateFilterCounts('viz-filter');
+
             switch(type) {
                 case 'mindmap':
                     renderMindMapView(filter);
@@ -3939,6 +3947,7 @@
             if (filter === 'all') return customers;
             if (filter === '중장') return customers.filter(function(c) { return c.rank === '중장'; });
             if (filter === '핵심고객') return customers.filter(function(c) { return keyCustomerIds.includes(c.id); });
+            if (filter === '미분류') return customers.filter(function(c) { var s = inferService(c); return !s || s === '기타'; });
 
             // ADD와 국과연은 같은 것으로 처리 (예전에 service가 '국과연'으로 저장된
             // 데이터도 있을 수 있어 그 값도 함께 확인)
@@ -3973,6 +3982,28 @@
             });
         }
         
+        // 필터 드롭다운의 각 항목 옆에 해당 인원 수를 붙여, 어떤 필터가
+        // 비어 있는지 열어보기 전에 알 수 있게 한다
+        function updateFilterCounts(selectId) {
+            var sel = document.getElementById(selectId);
+            if (!sel) return;
+            Array.prototype.forEach.call(sel.options, function(opt) {
+                if (!opt.dataset.label) opt.dataset.label = opt.textContent;
+                opt.textContent = opt.dataset.label + ' (' + getFilteredCustomers(opt.value).length + ')';
+            });
+        }
+
+        function filteredEmptyHtml(selectId) {
+            var sel = document.getElementById(selectId);
+            if (!sel || sel.value === 'all' || !customers.length) {
+                return '<div class="empty-state"><h3>표시할 고객이 없습니다</h3><p>새 고객을 추가해주세요</p></div>';
+            }
+            var label = sel.options[sel.selectedIndex].dataset.label || sel.value;
+            return '<div class="empty-state"><h3>\'' + mmEscape(label) + '\'에 해당하는 고객이 없습니다</h3>' +
+                '<p>소속 구분과 기관명이 모두 비어 있으면 분류되지 않습니다. \'소속 미분류\' 필터로 확인해 보세요.</p>' +
+                '<button class="btn btn-secondary" style="margin-top: 12px;" onclick="var s = document.getElementById(\'' + selectId + '\'); s.value = \'all\'; s.dispatchEvent(new Event(\'change\'));">필터 해제</button></div>';
+        }
+
         function getServiceColor(service) {
             // 군
             if (service === '육군') return '#2a5298';
@@ -4041,7 +4072,7 @@
             var filteredCustomers = getFilteredCustomers(filter);
             
             if (filteredCustomers.length === 0) {
-                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3><p>필터를 변경하거나 새 고객을 추가해주세요</p></div>';
+                container.innerHTML = filteredEmptyHtml('viz-filter');
                 return;
             }
             
@@ -4060,11 +4091,11 @@
             var filteredCustomers = getFilteredCustomers(filter);
             
             if (filteredCustomers.length === 0) {
-                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+                container.innerHTML = filteredEmptyHtml('viz-filter');
                 return;
             }
             
-            var services = ['육군', '해군', '공군', '해병대', 'ADD', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '공무원', '방사청', '기타'];
+            var services = ['육군', '해군', '공군', '해병대', 'ADD', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '공무원', '방사청', '기업', '기타'];
             var html = '';
 
             services.forEach(function(service) {
@@ -4096,7 +4127,7 @@
             });
             
             if (html === '') {
-                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+                container.innerHTML = filteredEmptyHtml('viz-filter');
             } else {
                 container.innerHTML = html;
             }
@@ -4108,7 +4139,7 @@
             var filteredCustomers = getFilteredCustomers(filter);
             
             if (filteredCustomers.length === 0) {
-                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+                container.innerHTML = filteredEmptyHtml('viz-filter');
                 return;
             }
             
@@ -4151,7 +4182,7 @@
                     // 카테고리 내에서 다시 세부 조직별로 그룹화
                     var subGroups = {};
                     categoryCustomers.forEach(function(c) {
-                        var subGroup = c.service || c.organization || inferService(c) || '미분류';
+                        var subGroup = (c.service !== '기타' && c.service) || c.organization || inferService(c) || '미분류';
                         // ADD와 국과연을 통합
                         if (subGroup === '국과연' || subGroup === 'ADD') {
                             subGroup = 'ADD(국과연)';
@@ -4202,7 +4233,7 @@
             }
             
             if (html === '') {
-                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+                container.innerHTML = filteredEmptyHtml('viz-filter');
             } else {
                 container.innerHTML = html;
             }
@@ -4214,7 +4245,7 @@
             var filteredCustomers = getFilteredCustomers(filter);
             
             if (filteredCustomers.length === 0) {
-                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+                container.innerHTML = filteredEmptyHtml('viz-filter');
                 return;
             }
             
@@ -4283,7 +4314,7 @@
             var filteredCustomers = getFilteredCustomers(filter);
             
             if (filteredCustomers.length === 0) {
-                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3></div>';
+                container.innerHTML = filteredEmptyHtml('viz-filter');
                 return;
             }
             

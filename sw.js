@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tactical-crm-v3';
+const CACHE_NAME = 'tactical-crm-v4';
 const APP_SHELL = [
   './',
   './index.html',
@@ -29,7 +29,8 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   event.respondWith(
-    fetch(event.request)
+    // HTTP 캐시(GitHub Pages는 10분)를 건너뛰고 서버에 확인해 새 배포를 바로 반영
+    fetch(event.request, { cache: 'no-cache' })
       .then((response) => {
         const copy = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
