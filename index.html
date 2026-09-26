@@ -2361,6 +2361,25 @@
             return terms;
         }
 
+        // 소속구분(service)이 비어 있는 고객(명함/VCF 가져오기 등)은 기관명으로
+        // 소속을 추정한다. 군/정출연/공공기관 어디에도 해당하지 않는 기관명이면
+        // 기업으로 본다 (예: "KT", "한화시스템").
+        var GOV_ORG_KEYWORDS = ['방위사업청', '방사청', '국방부', '합동참모', '합참', '국회', '대통령실', '병무청'];
+
+        function inferService(c) {
+            if (c.service) return c.service;
+            var org = (c.organization || '').trim();
+            if (!org) return '';
+            var military = ['육군', '해군', '공군', '해병대'].find(function(s) { return org.includes(s.replace('대', '')); });
+            if (military) return military;
+            var research = Object.keys(SERVICE_ALIASES).find(function(code) {
+                return org.includes(code) || SERVICE_ALIASES[code].some(function(alias) { return org.includes(alias); });
+            });
+            if (research) return research;
+            if (GOV_ORG_KEYWORDS.some(function(k) { return org.includes(k); })) return '공무원';
+            return '기업';
+        }
+
         function customerMatchesSearch(c, term) {
             var keywords = term.toLowerCase().split(/\s+/).filter(Boolean);
             if (keywords.length === 0) return true;
@@ -2369,7 +2388,7 @@
 
             var haystack = [
                 c.name, c.position, c.department, c.organization, c.militaryType,
-                c.classNumber, c.rank, c.service, c.school, c.major,
+                c.classNumber, c.rank, inferService(c), c.school, c.major,
                 c.phone, c.email, c.family, c.relations, c.notes, aliasTerms
             ].filter(Boolean).join(' ').toLowerCase();
 
@@ -2539,14 +2558,14 @@
             if (currentKeyFilter !== 'all') {
                 keyCustomers = keyCustomers.filter(function(c) {
                     if (currentKeyFilter === '연구기관') {
-                        return ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '기타연구기관'].includes(c.service) ||
+                        return ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '기타연구기관'].includes(inferService(c)) ||
                                ['ADD', 'ADD(국과연)', '국과연', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '기타연구기관'].includes(c.organization);
                     } else if (currentKeyFilter === '공무원') {
-                        return c.service === '공무원' || c.organization === '공무원';
+                        return inferService(c) === '공무원' || c.organization === '공무원';
                     } else if (currentKeyFilter === '기업') {
-                        return c.service === '기업' || c.organization === '기업';
+                        return inferService(c) === '기업' || c.organization === '기업';
                     } else {
-                        return c.service === currentKeyFilter || c.organization === currentKeyFilter;
+                        return inferService(c) === currentKeyFilter || c.organization === currentKeyFilter;
                     }
                 });
             }
@@ -3180,7 +3199,7 @@
                 '<circle r="' + (r + 12) + '" fill="transparent"/>' +
                 (isFocus ? '<circle r="' + (r + 7) + '" fill="none" stroke="' + MM_DIRECT_COLOR + '" stroke-width="2.5"/>' : '') +
                 (isKey ? '<circle r="' + (r + 3) + '" fill="none" stroke="#d64545" stroke-width="2"/>' : '') +
-                '<circle r="' + r + '" fill="' + mmCategoryColor(c.service) + '" stroke="#ffffff" stroke-width="2"/>' +
+                '<circle r="' + r + '" fill="' + mmCategoryColor(inferService(c)) + '" stroke="#ffffff" stroke-width="2"/>' +
                 '<text text-anchor="middle" y="' + (r + 15) + '" font-size="12" font-weight="600" fill="#1d1d1f" ' + halo + '>' + (isKey ? '⭐ ' : '') + mmEscape(c.name) + '</text>' +
                 (c.rank ? '<text text-anchor="middle" y="' + (r + 28) + '" font-size="10" fill="#6e6e73" ' + halo + '>' + mmEscape(c.rank) + '</text>' : '') +
                 '</g>';
@@ -3701,7 +3720,7 @@
                 }
                 ctx.beginPath();
                 ctx.arc(x, y, r, 0, Math.PI * 2);
-                ctx.fillStyle = mmCategoryColor(c.service);
+                ctx.fillStyle = mmCategoryColor(inferService(c));
                 ctx.fill();
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 2 * k;
@@ -3948,6 +3967,7 @@
             return customers.filter(function(c) {
                 if (c.service === filter) return true;
                 if (c.organization === filter) return true;
+                if (inferService(c) === filter) return true;
                 if (c.organization && aliases.some(function(alias) { return c.organization.includes(alias); })) return true;
                 return false;
             });
@@ -4049,14 +4069,15 @@
 
             services.forEach(function(service) {
                 var serviceCustomers = filteredCustomers.filter(function(c) {
+                    var cs = inferService(c);
                     if (service === '기타') {
-                        return !c.service || !services.slice(0, -1).includes(c.service);
+                        return !cs || !services.slice(0, -1).includes(cs);
                     }
                     // ADD와 국과연은 같은 그룹으로 처리
                     if (service === 'ADD') {
-                        return c.service === 'ADD' || c.service === '국과연' || c.service === 'ADD(국과연)';
+                        return cs === 'ADD' || cs === '국과연' || cs === 'ADD(국과연)';
                     }
-                    return c.service === service;
+                    return cs === service;
                 });
 
                 if (serviceCustomers.length > 0) {
@@ -4116,7 +4137,7 @@
             Object.keys(orgCategories).forEach(function(category) {
                 var categoryData = orgCategories[category];
                 var categoryCustomers = filteredCustomers.filter(function(c) {
-                    return categoryData.services.includes(c.service) || 
+                    return categoryData.services.includes(inferService(c)) ||
                            categoryData.services.includes(c.organization);
                 });
                 
@@ -4130,7 +4151,7 @@
                     // 카테고리 내에서 다시 세부 조직별로 그룹화
                     var subGroups = {};
                     categoryCustomers.forEach(function(c) {
-                        var subGroup = c.service || c.organization || '미분류';
+                        var subGroup = c.service || c.organization || inferService(c) || '미분류';
                         // ADD와 국과연을 통합
                         if (subGroup === '국과연' || subGroup === 'ADD') {
                             subGroup = 'ADD(국과연)';
@@ -4164,7 +4185,7 @@
                 Object.keys(orgCategories).forEach(function(cat) {
                     allServices = allServices.concat(orgCategories[cat].services);
                 });
-                return !allServices.includes(c.service) && !allServices.includes(c.organization);
+                return !allServices.includes(inferService(c)) && !allServices.includes(c.organization);
             });
             
             if (uncategorized.length > 0) {
