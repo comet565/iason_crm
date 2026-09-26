@@ -1098,6 +1098,7 @@
                             <optgroup label="기타">
                                 <option value="공무원">공무원</option>
                                 <option value="기업">기업</option>
+                                <option value="대학교">대학교</option>
                                 <option value="핵심고객">핵심 고객만</option>
                                 <option value="미분류">소속 미분류</option>
                             </optgroup>
@@ -1122,6 +1123,7 @@
                     <button class="filter-btn" onclick="filterKeyCustomers('연구기관')">연구기관</button>
                     <button class="filter-btn" onclick="filterKeyCustomers('공무원')">공무원</button>
                     <button class="filter-btn" onclick="filterKeyCustomers('기업')">기업</button>
+                    <button class="filter-btn" onclick="filterKeyCustomers('대학교')">대학교</button>
                 </div>
 
                 <div id="key-customers-list" class="customer-list"></div>
@@ -1258,11 +1260,20 @@
                                     <option value="대리">대리</option>
                                     <option value="사원">사원</option>
                                 </optgroup>
+                                <optgroup label="대학교">
+                                    <option value="총장">총장</option>
+                                    <option value="학장">학장</option>
+                                    <option value="교수">교수</option>
+                                    <option value="부교수">부교수</option>
+                                    <option value="조교수">조교수</option>
+                                    <option value="연구교수">연구교수</option>
+                                    <option value="박사후연구원">박사후연구원</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>소속 구분</label>
-                            <select id="service">
+                            <select id="service" onchange="applyServiceLayout('')">
                                 <option value="">선택</option>
                                 <optgroup label="군">
                                     <option value="육군">육군</option>
@@ -1283,19 +1294,24 @@
                                 <optgroup label="기타">
                                     <option value="공무원">공무원</option>
                                     <option value="기업">기업</option>
+                                    <option value="대학교">대학교</option>
                                     <option value="기타">기타</option>
                                 </optgroup>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>기관명</label>
+                            <label id="organization-label">기관명</label>
                             <input type="text" id="organization" placeholder="예: 국방부, LIG넥스원">
+                        </div>
+                        <div class="form-group">
+                            <label id="department-label">부서</label>
+                            <input type="text" id="department" placeholder="예: 지휘통신부, 정보화기획부">
                         </div>
                         <div class="form-group">
                             <label>전화번호</label>
                             <input type="tel" id="phone">
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" data-military-only>
                             <label>출신</label>
                             <select id="military-type">
                                 <option value="">선택</option>
@@ -1307,7 +1323,7 @@
                                 <option value="일반대">일반대</option>
                             </select>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" data-military-only>
                             <label>기수</label>
                             <input type="text" id="class-number" placeholder="예: 51">
                         </div>
@@ -1326,10 +1342,6 @@
                         <div class="form-group">
                             <label>직책</label>
                             <input type="text" id="position" placeholder="예: 2군단장, 센터장">
-                        </div>
-                        <div class="form-group">
-                            <label>부서</label>
-                            <input type="text" id="department" placeholder="예: 지휘통신부, 정보화기획부">
                         </div>
                         <div class="form-group">
                             <label>부임/진급일자</label>
@@ -1405,6 +1417,7 @@
                                 <option value="공무원">공무원만</option>
                                 <option value="방위사업청">방위사업청만</option>
                                 <option value="기업">기업만</option>
+                                <option value="대학교">대학교만</option>
                                 <option value="중장">중장만</option>
                                 <option value="핵심고객">핵심고객만</option>
                                 <option value="미분류">소속 미분류</option>
@@ -1474,13 +1487,22 @@
                                 <option value="과장">과장</option>
                                 <option value="팀장">팀장</option>
                                 <option value="대리">대리</option>
-                                <option value="사원">사원</option>
+                                    <option value="사원">사원</option>
+                            </optgroup>
+                            <optgroup label="대학교">
+                                <option value="총장">총장</option>
+                                <option value="학장">학장</option>
+                                <option value="교수">교수</option>
+                                <option value="부교수">부교수</option>
+                                <option value="조교수">조교수</option>
+                                <option value="연구교수">연구교수</option>
+                                <option value="박사후연구원">박사후연구원</option>
                             </optgroup>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>소속 구분</label>
-                        <select id="edit-service">
+                        <select id="edit-service" onchange="applyServiceLayout('edit-')">
                             <option value="">선택</option>
                             <optgroup label="군">
                                 <option value="육군">육군</option>
@@ -1501,19 +1523,24 @@
                             <optgroup label="기타">
                                 <option value="공무원">공무원</option>
                                 <option value="기업">기업</option>
+                                <option value="대학교">대학교</option>
                                 <option value="기타">기타</option>
                             </optgroup>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>기관명</label>
-                        <input type="text" id="edit-organization">
+                        <label id="edit-organization-label">기관명</label>
+                        <input type="text" id="edit-organization" placeholder="예: 국방부, LIG넥스원">
+                    </div>
+                    <div class="form-group">
+                        <label id="edit-department-label">부서</label>
+                        <input type="text" id="edit-department" placeholder="예: 지휘통신부, 정보화기획부">
                     </div>
                     <div class="form-group">
                         <label>전화번호</label>
                         <input type="tel" id="edit-phone">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" data-military-only>
                         <label>출신</label>
                         <select id="edit-military-type">
                             <option value="">선택</option>
@@ -1525,7 +1552,7 @@
                             <option value="일반대">일반대</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" data-military-only>
                         <label>기수</label>
                         <input type="text" id="edit-class-number">
                     </div>
@@ -1544,10 +1571,6 @@
                     <div class="form-group">
                         <label>직책</label>
                         <input type="text" id="edit-position" placeholder="예: 2군단장, 센터장">
-                    </div>
-                    <div class="form-group">
-                        <label>부서</label>
-                        <input type="text" id="edit-department" placeholder="예: 지휘통신부">
                     </div>
                     <div class="form-group">
                         <label>부임/진급일자</label>
@@ -1997,6 +2020,35 @@
             document.getElementById('vcf-help-modal').classList.remove('active');
         }
         
+        // 소속 구분에 맞춰 기관명/부서 칸의 이름과 예시를 바꾼다.
+        // 값은 같은 필드(organization, department)에 저장되므로 필터·관계도는 그대로 동작한다.
+        var SERVICE_FORM_LAYOUT = {
+            '기업':   { org: '기업명', orgPh: '예: KT, 한화시스템, LIG넥스원', dept: '부서', deptPh: '예: 국방사업본부 방산영업팀', pos: '예: 팀장, 상무', military: false },
+            '대학교': { org: '학교명', orgPh: '예: KAIST, 서울대학교', dept: '소속 학부/학과', deptPh: '예: 전기및전자공학부', pos: '예: 학과장, 연구소장', military: false },
+            '_군':    { org: '소속 부대/기관', orgPh: '예: 육군본부, 2군단', dept: '부서', deptPh: '예: 지휘통신부, 정보화기획부', pos: '예: 2군단장, 참모장', military: true },
+            '_기본':  { org: '기관명', orgPh: '예: 국방부, LIG넥스원', dept: '부서', deptPh: '예: 지휘통신부, 정보화기획부', pos: '예: 2군단장, 센터장', military: true }
+        };
+
+        function applyServiceLayout(prefix) {
+            var sel = document.getElementById(prefix + 'service');
+            if (!sel) return;
+            // 소속 구분이 비어 있으면 입력된 기관명으로 추정한 분류에 맞춘다
+            var service = sel.value || inferService({ organization: document.getElementById(prefix + 'organization').value });
+            var layout = SERVICE_FORM_LAYOUT[service] ||
+                (['육군', '해군', '공군', '해병대'].includes(service) ? SERVICE_FORM_LAYOUT['_군'] : SERVICE_FORM_LAYOUT['_기본']);
+            document.getElementById(prefix + 'organization-label').textContent = layout.org;
+            document.getElementById(prefix + 'organization').placeholder = layout.orgPh;
+            document.getElementById(prefix + 'department-label').textContent = layout.dept;
+            document.getElementById(prefix + 'department').placeholder = layout.deptPh;
+            document.getElementById(prefix + 'position').placeholder = layout.pos;
+            // 출신·기수는 군 경력자에게만 의미가 있어 기업/대학교에서는 숨긴다
+            // (이미 입력된 값은 지우지 않고 그대로 저장된다)
+            var form = sel.closest('form') || sel.closest('.modal-content') || document;
+            form.querySelectorAll('[data-military-only]').forEach(function(el) {
+                el.style.display = layout.military ? '' : 'none';
+            });
+        }
+
         // 연락처 하나를 고객 추가 폼에 채워넣기 (자동 저장하지 않고, 나머지 정보는 사용자가 이어서 입력)
         function fillAddFormFromContact(contact) {
             switchTab('add');
@@ -2010,7 +2062,13 @@
             document.getElementById('phone').value = phone;
             document.getElementById('email').value = email;
             document.getElementById('organization').value = contact.org || '';
+            document.getElementById('department').value = contact.dept || '';
             document.getElementById('position').value = contact.title || '';
+            var guessed = inferService({ organization: contact.org || '' });
+            if (!document.getElementById('service').value && (guessed === '기업' || guessed === '대학교')) {
+                document.getElementById('service').value = guessed;
+            }
+            applyServiceLayout('');
             document.getElementById('work-address').value = address;
 
             showSyncBanner('success', '연락처 정보를 불러왔습니다. 나머지 정보를 입력해주세요.');
@@ -2169,8 +2227,10 @@
                     
                     // ORG (Organization)
                     else if (line.startsWith('ORG:') || line.startsWith('ORG;')) {
-                        const org = line.split(':').pop();
-                        if (org) contact.org = org.trim();
+                        // vCard ORG는 "회사명;부서;하위부서" 형식
+                        const orgParts = line.split(':').pop().split(';').map(function(p) { return p.trim(); }).filter(Boolean);
+                        if (orgParts.length > 0) contact.org = orgParts[0];
+                        if (orgParts.length > 1) contact.dept = orgParts.slice(1).join(' ');
                     }
                     
                     // TITLE (Job Title)
@@ -2230,6 +2290,9 @@
             if (contact.org && !customers[index].organization) {
                 customers[index].organization = contact.org;
             }
+            if (contact.dept && !customers[index].department) {
+                customers[index].department = contact.dept;
+            }
             
             // 직책 업데이트 (빈 경우만)
             if (contact.title && !customers[index].position) {
@@ -2259,7 +2322,7 @@
                 school: '',
                 major: '',
                 workAddress: '',
-                department: '',
+                department: contact.dept || '',
                 promotionDate: '',
                 birthday: '',
                 family: '',
@@ -2310,6 +2373,7 @@
             triggerAutoSync();
             
             this.reset();
+            applyServiceLayout('');
             alert('고객이 등록되었습니다.');
             
             renderKeyCustomers(); // 핵심 고객 목록도 업데이트
@@ -2322,7 +2386,8 @@
         var RANK_ORDER = ['대장','중장','소장','준장','대령','중령','소령','대위',
             '국장','사무관','주무관',
             '본부장','센터장','실장','수석','책임','전문','선임',
-            '부장','차장','과장','팀장','대리','사원'];
+            '부장','차장','과장','팀장','대리','사원',
+            '총장','학장','교수','부교수','조교수','연구교수','박사후연구원'];
 
         function getRankWeight(rank) {
             var idx = rank ? RANK_ORDER.indexOf(rank) : -1;
@@ -2379,6 +2444,7 @@
             });
             if (research) return research;
             if (GOV_ORG_KEYWORDS.some(function(k) { return org.includes(k); })) return '공무원';
+            if (/대학|KAIST|POSTECH|UNIST|GIST|카이스트|포스텍/i.test(org)) return '대학교';
             return '기업';
         }
 
@@ -2663,6 +2729,7 @@
             document.getElementById('edit-home-address').value = customer.homeAddress || '';
             document.getElementById('edit-position').value = customer.position || '';
             document.getElementById('edit-department').value = customer.department || '';
+            applyServiceLayout('edit-');
             document.getElementById('edit-promotion-date').value = customer.promotionDate || '';
             document.getElementById('edit-birthday').value = customer.birthday || '';
             document.getElementById('edit-family').value = customer.family || '';
@@ -2989,6 +3056,7 @@
             if (['ADD', '국과연', 'ADD(국과연)', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '기타연구기관'].includes(service)) return '#b8862e';
             if (service === '공무원') return '#7a5aa6';
             if (service === '기업') return '#2f8f6f';
+            if (service === '대학교') return '#c0567a';
             return '#8a8f98';
         }
 
@@ -3302,6 +3370,7 @@
                 '<span><i style="background: #b8862e;"></i>정출연</span>' +
                 '<span><i style="background: #7a5aa6;"></i>공무원</span>' +
                 '<span><i style="background: #2f8f6f;"></i>기업</span>' +
+                '<span><i style="background: #c0567a;"></i>대학교</span>' +
                 '<span><i style="background: #fff; box-shadow: 0 0 0 2px #d64545;"></i>핵심 고객</span>' +
                 '<span><i class="line" style="background: ' + MM_DIRECT_COLOR + ';"></i>직접 등록한 관계</span>' +
                 '<span><i class="line" style="background: #c3c8cf;"></i>동기·동문·같은 기관</span>' +
@@ -3749,6 +3818,7 @@
                 { kind: 'dot', color: '#b8862e', label: '정출연' },
                 { kind: 'dot', color: '#7a5aa6', label: '공무원' },
                 { kind: 'dot', color: '#2f8f6f', label: '기업' },
+                { kind: 'dot', color: '#c0567a', label: '대학교' },
                 { kind: 'ring', color: '#d64545', label: '핵심 고객' },
                 { kind: 'line', color: MM_DIRECT_COLOR, label: '직접 등록한 관계' },
                 { kind: 'line', color: '#c3c8cf', label: '동기·동문·같은 기관' }
@@ -3781,7 +3851,7 @@
                 }
                 ctx.fillStyle = '#6e6e73';
                 ctx.fillText(item.label, lx, ly);
-                lx += ctx.measureText(item.label).width + 40;
+                lx += ctx.measureText(item.label).width + 32;
             });
 
             return { canvas: canvas, landscape: landscape };
@@ -4022,6 +4092,8 @@
             if (service === '공무원') return '#9c27b0';
             if (service === '방사청') return '#7b1fa2';
             if (service === '국방부') return '#6a1b9a';
+            if (service === '기업') return '#00796b';
+            if (service === '대학교') return '#ad1457';
             // 기타
             return '#78909c';
         }
@@ -4095,7 +4167,7 @@
                 return;
             }
             
-            var services = ['육군', '해군', '공군', '해병대', 'ADD', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '공무원', '방사청', '기업', '기타'];
+            var services = ['육군', '해군', '공군', '해병대', 'ADD', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '공무원', '방사청', '기업', '대학교', '기타'];
             var html = '';
 
             services.forEach(function(service) {
@@ -4160,6 +4232,10 @@
                 '민간/기업': {
                     color: '#00796b',
                     services: ['기업', '민간', '컨설팅']
+                },
+                '대학교': {
+                    color: '#ad1457',
+                    services: ['대학교']
                 }
             };
             
