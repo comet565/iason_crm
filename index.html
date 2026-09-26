@@ -818,6 +818,169 @@
             box-shadow: 0 0 0 1px var(--accent);
         }
 
+        /* 마인드맵 관계도 */
+        .mm-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .mm-toolbar .btn {
+            padding: 7px 12px;
+            font-size: 13px;
+        }
+
+        .mm-toolbar select {
+            padding: 7px 10px;
+            font-size: 13px;
+        }
+
+        .mm-toolbar label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .mm-status {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .mm-stage {
+            position: relative;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--surface-muted);
+            overflow: hidden;
+        }
+
+        .mm-svg {
+            display: block;
+            width: 100%;
+            height: min(68vh, 640px);
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            cursor: grab;
+        }
+
+        .mm-svg text {
+            pointer-events: none;
+            font-family: inherit;
+        }
+
+        .mm-svg [data-node] {
+            cursor: pointer;
+        }
+
+        .mm-zoom {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .mm-zoom button {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text-primary);
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .mm-info {
+            position: absolute;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            padding: 14px;
+            max-height: 45%;
+            overflow-y: auto;
+        }
+
+        .mm-info-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .mm-info-sub {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .mm-info ul {
+            list-style: none;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .mm-info li {
+            padding: 2px 0;
+        }
+
+        .mm-info-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mm-info-actions .btn {
+            flex: 1;
+            padding: 8px 10px;
+            font-size: 13px;
+        }
+
+        .mm-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+
+        .mm-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .mm-legend i {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .mm-legend i.line {
+            width: 16px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .mm-svg {
+                height: 60vh;
+            }
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 15px;
@@ -1209,6 +1372,7 @@
                     <div class="control-group">
                         <label>보기 방식</label>
                         <select id="viz-type" onchange="changeVisualizationType()">
+                            <option value="mindmap" selected>🧠 마인드맵</option>
                             <option value="grid">그리드 보기</option>
                             <option value="service-group">군종별 그룹</option>
                             <option value="org-group">조직별 그룹 (군/연구기관/공무원)</option>
@@ -2773,6 +2937,659 @@
         }
 
         // 관계도 렌더링
+        // ===== 마인드맵 관계도 =====
+        // 사람(원)과 공통 소속(동기·학교·기관, 알약 모양 허브)을 선으로 이어 그린다.
+        // 공통점이 있는 사람끼리 모두 직접 선을 그으면 인원이 늘수록 선이 폭증하므로,
+        // 공통점은 허브 하나로 모아 "사람 - 허브 - 사람" 형태로 연결한다.
+        var mmState = { focus: null, depth: 1, showIsolated: false, selected: null, t: { x: 0, y: 0, k: 1 } };
+        var mmGraph = null;
+
+        var MM_HUB_STYLE = {
+            class:  { color: '#3a5ba9', icon: '🎖', label: '동기' },
+            school: { color: '#2f8f6f', icon: '🎓', label: '동문' },
+            org:    { color: '#b8862e', icon: '🏢', label: '같은 기관' }
+        };
+        var MM_DIRECT_COLOR = '#3a5ba9';
+        var MM_GENERAL_RANKS = ['대장', '중장', '소장', '준장'];
+
+        function mmEscape(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, function(ch) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+            });
+        }
+
+        function mmCategoryColor(service) {
+            if (['육군', '해군', '공군', '해병대'].includes(service)) return '#3a5ba9';
+            if (['ADD', '국과연', 'ADD(국과연)', '국기연', '기품원', 'KIDA', 'IITP', 'ETRI', 'KARI', '기타연구기관'].includes(service)) return '#b8862e';
+            if (service === '공무원') return '#7a5aa6';
+            if (service === '기업') return '#2f8f6f';
+            return '#8a8f98';
+        }
+
+        // 문자열 기반 고정 난수 — 같은 데이터면 매번 비슷한 배치가 나오게 한다
+        function mmHash(str) {
+            var h = 2166136261;
+            for (var i = 0; i < str.length; i++) {
+                h ^= str.charCodeAt(i);
+                h = Math.imul(h, 16777619);
+            }
+            return (h >>> 0) / 4294967296;
+        }
+
+        function mmBuildGraph(persons) {
+            var nodes = {};
+            var edges = [];
+            persons.forEach(function(c) {
+                nodes['p:' + c.id] = { id: 'p:' + c.id, kind: 'person', customer: c };
+            });
+
+            // 공통 소속 허브 — 2명 이상 모일 때만 의미가 있으므로 그때만 만든다
+            var groups = {};
+            function addToGroup(type, key, c) {
+                var gid = 'h:' + type + ':' + key;
+                if (!groups[gid]) groups[gid] = { id: gid, kind: 'hub', type: type, label: key, members: [] };
+                groups[gid].members.push('p:' + c.id);
+            }
+            persons.forEach(function(c) {
+                if (c.militaryType && c.classNumber) {
+                    addToGroup('class', c.militaryType + ' ' + String(c.classNumber).replace(/기$/, '') + '기', c);
+                }
+                if (c.school && c.school.trim()) addToGroup('school', c.school.trim(), c);
+                if (c.organization && c.organization.trim().length > 1) addToGroup('org', c.organization.trim(), c);
+            });
+            Object.keys(groups).forEach(function(gid) {
+                var grp = groups[gid];
+                if (grp.members.length < 2) return;
+                nodes[gid] = grp;
+                grp.members.forEach(function(pid) { edges.push({ a: pid, b: gid, type: grp.type }); });
+            });
+
+            // '관련 고객' 필드로 직접 등록한 관계
+            var byName = {};
+            persons.forEach(function(c) {
+                if (c.name) (byName[c.name] = byName[c.name] || []).push(c);
+            });
+            var seen = {};
+            persons.forEach(function(c) {
+                if (!c.relations) return;
+                c.relations.split(',').map(function(n) { return n.trim(); }).filter(Boolean).forEach(function(name) {
+                    (byName[name] || []).forEach(function(other) {
+                        if (other.id === c.id) return;
+                        var key = ['p:' + c.id, 'p:' + other.id].sort().join('|');
+                        if (seen[key]) return;
+                        seen[key] = true;
+                        edges.push({ a: 'p:' + c.id, b: 'p:' + other.id, type: 'direct' });
+                    });
+                });
+            });
+
+            var adj = {};
+            Object.keys(nodes).forEach(function(id) { adj[id] = []; });
+            edges.forEach(function(e) {
+                adj[e.a].push(e.b);
+                adj[e.b].push(e.a);
+            });
+            return { nodes: nodes, edges: edges, adj: adj };
+        }
+
+        // 사람 기준 이웃: 직접 연결된 사람 + 같은 허브에 속한 사람.
+        // "사람 → 허브 → 사람"을 한 단계로 봐야 '1단계'가 직관적인 의미가 된다.
+        function mmPersonNeighbors(g, id) {
+            var out = {};
+            g.adj[id].forEach(function(n) {
+                if (g.nodes[n].kind === 'person') {
+                    out[n] = true;
+                } else {
+                    g.adj[n].forEach(function(m) { if (m !== id) out[m] = true; });
+                }
+            });
+            return Object.keys(out);
+        }
+
+        function mmSubgraph(g, focusId, depth) {
+            var keep = {};
+            var frontier;
+            var steps;
+            keep[focusId] = true;
+            if (g.nodes[focusId].kind === 'hub') {
+                frontier = g.adj[focusId].slice();
+                frontier.forEach(function(p) { keep[p] = true; });
+                steps = depth - 1;
+            } else {
+                frontier = [focusId];
+                steps = depth;
+            }
+            for (var d = 0; d < steps; d++) {
+                var next = [];
+                frontier.forEach(function(p) {
+                    mmPersonNeighbors(g, p).forEach(function(n) {
+                        if (!keep[n]) {
+                            keep[n] = true;
+                            next.push(n);
+                        }
+                    });
+                });
+                frontier = next;
+            }
+            // 화면에 남은 사람 중 2명 이상을 묶는 허브만 함께 보여준다
+            Object.keys(g.nodes).forEach(function(id) {
+                if (g.nodes[id].kind !== 'hub' || keep[id]) return;
+                var count = g.adj[id].filter(function(m) { return keep[m]; }).length;
+                if (count >= 2) keep[id] = true;
+            });
+            return keep;
+        }
+
+        // 간단한 힘 기반 배치: 노드끼리는 밀어내고, 연결선은 스프링처럼 당긴다
+        // aspect = 화면 세로/가로 비율. 휴대폰처럼 세로로 긴 화면이면 가로 방향을 더
+        // 강하게 당겨서 그래프가 세로로 길게 퍼지도록 한다 (화면을 꽉 채워 글씨가 커지게).
+        function mmLayout(nodeList, edges, pinnedId, aspect) {
+            var gx = 0.008 * Math.sqrt(aspect);
+            var gy = 0.008 / Math.sqrt(aspect);
+            var n = nodeList.length;
+            var idx = {};
+            nodeList.forEach(function(nd, i) {
+                idx[nd.id] = i;
+                // 겹침 판정용 반지름: 사람은 원+이름표, 허브는 알약 가로 길이의 절반
+                nd.cr = nd.kind === 'hub' ? Math.max(32, mmHubWidth(nd) / 2 + 4) : 30;
+                var r = 40 + 240 * mmHash(nd.id + '#r');
+                var a = 2 * Math.PI * mmHash(nd.id + '#a');
+                nd.x = r * Math.cos(a);
+                nd.y = r * Math.sin(a);
+                nd.vx = 0;
+                nd.vy = 0;
+            });
+            var pinned = pinnedId !== null && idx[pinnedId] !== undefined ? nodeList[idx[pinnedId]] : null;
+            var links = edges.map(function(e) {
+                return { s: nodeList[idx[e.a]], t: nodeList[idx[e.b]], len: e.type === 'direct' ? 130 : 95 };
+            });
+            var iterations = n > 150 ? 180 : 300;
+            for (var it = 0; it < iterations; it++) {
+                var alpha = 1 - it / iterations;
+                for (var i = 0; i < n; i++) {
+                    var p = nodeList[i];
+                    for (var j = i + 1; j < n; j++) {
+                        var q = nodeList[j];
+                        var dx = q.x - p.x;
+                        var dy = q.y - p.y;
+                        var d2 = dx * dx + dy * dy;
+                        if (d2 > 250000) continue;
+                        if (d2 < 1) { dx = mmHash(p.id + q.id) - 0.5; dy = 0.5 - mmHash(q.id + p.id); d2 = 1; }
+                        var d = Math.sqrt(d2);
+                        var f = 4200 / d2;
+                        // 서로 겹치면 강하게 밀어낸다
+                        var minD = p.cr + q.cr;
+                        if (d < minD) f += (minD - d) * 0.5;
+                        p.vx -= dx / d * f; p.vy -= dy / d * f;
+                        q.vx += dx / d * f; q.vy += dy / d * f;
+                    }
+                }
+                links.forEach(function(l) {
+                    var dx = l.t.x - l.s.x;
+                    var dy = l.t.y - l.s.y;
+                    var d = Math.sqrt(dx * dx + dy * dy) || 0.01;
+                    var f = (d - l.len) * 0.06;
+                    l.s.vx += dx / d * f; l.s.vy += dy / d * f;
+                    l.t.vx -= dx / d * f; l.t.vy -= dy / d * f;
+                });
+                var maxStep = 12 * alpha + 0.4;
+                nodeList.forEach(function(nd) {
+                    nd.vx -= nd.x * gx;
+                    nd.vy -= nd.y * gy;
+                    var v = Math.sqrt(nd.vx * nd.vx + nd.vy * nd.vy);
+                    if (v > maxStep) { nd.vx = nd.vx / v * maxStep; nd.vy = nd.vy / v * maxStep; }
+                    nd.x += nd.vx;
+                    nd.y += nd.vy;
+                    nd.vx *= 0.5;
+                    nd.vy *= 0.5;
+                });
+                if (pinned) { pinned.x = 0; pinned.y = 0; }
+            }
+        }
+
+        function mmNodeRadius(c) {
+            var r = MM_GENERAL_RANKS.includes(c.rank) ? 13 : 11;
+            return keyCustomerIds.includes(c.id) ? r + 3 : r;
+        }
+
+        function mmHubLabel(n) {
+            return MM_HUB_STYLE[n.type].icon + ' ' + n.label;
+        }
+
+        function mmHubWidth(n) {
+            return Math.max(60, mmHubLabel(n).length * 11 + 22);
+        }
+
+        function mmNodeSvg(n) {
+            var attr = 'data-node="' + mmEscape(n.id) + '" transform="translate(' + n.x.toFixed(1) + ',' + n.y.toFixed(1) + ')"';
+            var halo = 'stroke="#fafafa" stroke-width="3" paint-order="stroke" stroke-linejoin="round"';
+            if (n.kind === 'hub') {
+                var style = MM_HUB_STYLE[n.type];
+                var text = mmHubLabel(n);
+                var w = mmHubWidth(n);
+                return '<g ' + attr + '>' +
+                    '<rect x="' + (-w / 2) + '" y="-13" width="' + w + '" height="26" rx="13" fill="#ffffff" stroke="' + style.color + '" stroke-width="1.5"/>' +
+                    '<text text-anchor="middle" dy="4" font-size="11" font-weight="600" fill="' + style.color + '">' + mmEscape(text) + '</text>' +
+                    '</g>';
+            }
+            var c = n.customer;
+            var r = mmNodeRadius(c);
+            var isKey = keyCustomerIds.includes(c.id);
+            var isFocus = mmState.focus === n.id;
+            return '<g ' + attr + '>' +
+                '<circle r="' + (r + 12) + '" fill="transparent"/>' +
+                (isFocus ? '<circle r="' + (r + 7) + '" fill="none" stroke="' + MM_DIRECT_COLOR + '" stroke-width="2.5"/>' : '') +
+                (isKey ? '<circle r="' + (r + 3) + '" fill="none" stroke="#d64545" stroke-width="2"/>' : '') +
+                '<circle r="' + r + '" fill="' + mmCategoryColor(c.service) + '" stroke="#ffffff" stroke-width="2"/>' +
+                '<text text-anchor="middle" y="' + (r + 15) + '" font-size="12" font-weight="600" fill="#1d1d1f" ' + halo + '>' + (isKey ? '⭐ ' : '') + mmEscape(c.name) + '</text>' +
+                (c.rank ? '<text text-anchor="middle" y="' + (r + 28) + '" font-size="10" fill="#6e6e73" ' + halo + '>' + mmEscape(c.rank) + '</text>' : '') +
+                '</g>';
+        }
+
+        function renderMindMapView(filter) {
+            var container = document.getElementById('network-graph');
+            var persons = getFilteredCustomers(filter);
+            if (persons.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>표시할 고객이 없습니다</h3><p>필터를 변경하거나 새 고객을 추가해주세요</p></div>';
+                return;
+            }
+
+            var g = mmBuildGraph(persons);
+            if (mmState.focus && !g.nodes[mmState.focus]) mmState.focus = null;
+            if (mmState.selected && !g.nodes[mmState.selected]) mmState.selected = null;
+
+            var keep;
+            if (mmState.focus) {
+                keep = mmSubgraph(g, mmState.focus, mmState.depth);
+            } else {
+                keep = {};
+                Object.keys(g.nodes).forEach(function(id) {
+                    if (mmState.showIsolated || g.adj[id].length > 0) keep[id] = true;
+                });
+            }
+            var nodeList = Object.keys(keep).map(function(id) { return g.nodes[id]; });
+            var edges = g.edges.filter(function(e) { return keep[e.a] && keep[e.b]; });
+            var isolatedCount = persons.filter(function(c) { return g.adj['p:' + c.id].length === 0; }).length;
+            var shownPersons = nodeList.filter(function(n) { return n.kind === 'person'; }).length;
+
+            var stageW = container.clientWidth || 360;
+            var stageH = Math.min(window.innerHeight * (window.innerWidth <= 768 ? 0.6 : 0.68), 640);
+            mmLayout(nodeList, edges, mmState.focus, Math.max(0.6, Math.min(2, stageH / stageW)));
+            mmGraph = { g: g, nodeList: nodeList, edges: edges, keep: keep };
+
+            var status;
+            if (mmState.focus) {
+                var fn = g.nodes[mmState.focus];
+                var fname = fn.kind === 'hub' ? mmHubLabel(fn) : fn.customer.name;
+                status = '<strong>' + mmEscape(fname) + '</strong> 중심 · ' + mmState.depth + '단계 연결 · 고객 ' + shownPersons + '명';
+            } else {
+                status = '고객 ' + shownPersons + '명 · 연결 ' + edges.length + '개' +
+                    (!mmState.showIsolated && isolatedCount > 0 ? ' · 연결 없는 고객 ' + isolatedCount + '명 숨김' : '');
+            }
+
+            var html = '<div class="mm-toolbar">';
+            if (mmState.focus) {
+                html += '<button class="btn btn-primary" onclick="mmResetFocus()">← 전체 보기</button>' +
+                    '<select onchange="mmSetDepth(this.value)">' +
+                    '<option value="1"' + (mmState.depth === 1 ? ' selected' : '') + '>1단계 연결</option>' +
+                    '<option value="2"' + (mmState.depth === 2 ? ' selected' : '') + '>2단계 연결</option>' +
+                    '</select>';
+            } else {
+                html += '<label><input type="checkbox" onchange="mmToggleIsolated(this.checked)"' + (mmState.showIsolated ? ' checked' : '') + '> 연결 없는 고객 표시</label>';
+            }
+            html += '<div style="display: flex; gap: 8px; flex: 1 1 220px;">' +
+                '<input type="text" id="mm-search" placeholder="이름으로 찾기" style="flex: 1; min-width: 0; padding: 7px 10px; font-size: 13px;" onkeydown="if (event.key === \'Enter\') mmSearch()">' +
+                '<button class="btn btn-secondary" onclick="mmSearch()">찾기</button>' +
+                '</div></div>' +
+                '<div class="mm-status">' + status + '</div>' +
+                '<div class="mm-stage">';
+
+            if (nodeList.length === 0) {
+                html += '<div class="empty-state" style="padding: 40px 20px;"><h3>아직 연결된 고객이 없습니다</h3>' +
+                    '<p style="margin: 10px 0 16px;">고객 정보에 출신·기수, 출신학교, 기관명, 관련 고객을 입력하면 관계가 그려집니다.</p>' +
+                    '<button class="btn btn-secondary" onclick="mmToggleIsolated(true)">연결 없는 고객도 모두 표시</button></div></div>';
+                container.innerHTML = html;
+                return;
+            }
+
+            html += '<svg class="mm-svg" id="mm-svg"><g id="mm-viewport">';
+            edges.forEach(function(e, i) {
+                var a = g.nodes[e.a];
+                var b = g.nodes[e.b];
+                var direct = e.type === 'direct';
+                html += '<line data-edge="' + i + '" x1="' + a.x.toFixed(1) + '" y1="' + a.y.toFixed(1) + '" x2="' + b.x.toFixed(1) + '" y2="' + b.y.toFixed(1) + '"' +
+                    ' stroke="' + (direct ? MM_DIRECT_COLOR : '#c3c8cf') + '" stroke-width="' + (direct ? 2.5 : 1.2) + '"/>';
+            });
+            nodeList.filter(function(n) { return n.kind === 'hub'; }).forEach(function(n) { html += mmNodeSvg(n); });
+            nodeList.filter(function(n) { return n.kind === 'person'; }).forEach(function(n) { html += mmNodeSvg(n); });
+            html += '</g></svg>' +
+                '<div class="mm-zoom">' +
+                '<button onclick="mmZoomBy(1.3)" aria-label="확대">+</button>' +
+                '<button onclick="mmZoomBy(1 / 1.3)" aria-label="축소">−</button>' +
+                '<button onclick="mmFit()" aria-label="화면에 맞추기">⤢</button>' +
+                '</div>' +
+                '<div class="mm-info" id="mm-info" style="display: none;"></div>' +
+                '</div>' +
+                '<div class="mm-legend">' +
+                '<span><i style="background: #3a5ba9;"></i>군</span>' +
+                '<span><i style="background: #b8862e;"></i>정출연</span>' +
+                '<span><i style="background: #7a5aa6;"></i>공무원</span>' +
+                '<span><i style="background: #2f8f6f;"></i>기업</span>' +
+                '<span><i style="background: #fff; box-shadow: 0 0 0 2px #d64545;"></i>핵심 고객</span>' +
+                '<span><i class="line" style="background: ' + MM_DIRECT_COLOR + ';"></i>직접 등록한 관계</span>' +
+                '<span><i class="line" style="background: #c3c8cf;"></i>동기·동문·같은 기관</span>' +
+                '</div>';
+            container.innerHTML = html;
+
+            var svg = document.getElementById('mm-svg');
+            var info = document.getElementById('mm-info');
+            info.addEventListener('click', mmHandleInfoClick);
+            svg.setAttribute('viewBox', '0 0 ' + mmSvgSize(svg).w + ' ' + mmSvgSize(svg).h);
+            if (mmState.selected && keep[mmState.selected]) {
+                mmSelect(mmState.selected, true);
+            } else {
+                mmState.selected = null;
+            }
+            mmFit();
+            mmAttachInteractions(svg);
+        }
+
+        function mmApplyTransform() {
+            var vp = document.getElementById('mm-viewport');
+            if (!vp) return;
+            var t = mmState.t;
+            vp.setAttribute('transform', 'translate(' + t.x.toFixed(1) + ',' + t.y.toFixed(1) + ') scale(' + t.k.toFixed(3) + ')');
+        }
+
+        function mmSvgSize(svg) {
+            return { w: svg.clientWidth || 360, h: svg.clientHeight || 480 };
+        }
+
+        // 정보 카드가 떠 있으면 카드에 가려지지 않는 윗부분에만 맞춘다
+        function mmVisibleHeight(svg) {
+            var size = mmSvgSize(svg);
+            var info = document.getElementById('mm-info');
+            if (info && info.style.display !== 'none') {
+                return Math.max(size.h * 0.4, size.h - info.offsetHeight - 20);
+            }
+            return size.h;
+        }
+
+        function mmFit() {
+            var svg = document.getElementById('mm-svg');
+            if (!svg || !mmGraph || mmGraph.nodeList.length === 0) return;
+            var size = mmSvgSize(svg);
+            svg.setAttribute('viewBox', '0 0 ' + size.w + ' ' + size.h);
+            var visibleH = mmVisibleHeight(svg);
+            var xs = mmGraph.nodeList.map(function(n) { return n.x; });
+            var ys = mmGraph.nodeList.map(function(n) { return n.y; });
+            var minX = Math.min.apply(null, xs) - 70, maxX = Math.max.apply(null, xs) + 70;
+            var minY = Math.min.apply(null, ys) - 40, maxY = Math.max.apply(null, ys) + 60;
+            var k = Math.min(size.w / (maxX - minX), visibleH / (maxY - minY));
+            k = Math.max(0.25, Math.min(1.6, k));
+            mmState.t = {
+                k: k,
+                x: size.w / 2 - (minX + maxX) / 2 * k,
+                y: visibleH / 2 - (minY + maxY) / 2 * k
+            };
+            mmApplyTransform();
+        }
+
+        function mmZoomAt(sx, sy, factor) {
+            var t = mmState.t;
+            var k = Math.max(0.2, Math.min(4, t.k * factor));
+            t.x = sx - (sx - t.x) * k / t.k;
+            t.y = sy - (sy - t.y) * k / t.k;
+            t.k = k;
+            mmApplyTransform();
+        }
+
+        function mmZoomBy(factor) {
+            var svg = document.getElementById('mm-svg');
+            if (!svg) return;
+            var size = mmSvgSize(svg);
+            mmZoomAt(size.w / 2, size.h / 2, factor);
+        }
+
+        // 한 손가락: 이동 / 두 손가락: 확대·축소 / 짧게 탭: 노드 선택
+        function mmAttachInteractions(svg) {
+            var pointers = {};
+            var tapTarget = null;
+            var moved = false;
+            var start = null;
+            var last = null;
+            var pinch = null;
+
+            function localPoint(e) {
+                var rect = svg.getBoundingClientRect();
+                return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            }
+
+            function beginPinch() {
+                var ids = Object.keys(pointers);
+                var a = pointers[ids[0]];
+                var b = pointers[ids[1]];
+                pinch = {
+                    d: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+                    k: mmState.t.k,
+                    mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+                    tx: mmState.t.x,
+                    ty: mmState.t.y
+                };
+            }
+
+            svg.addEventListener('pointerdown', function(e) {
+                var p = localPoint(e);
+                pointers[e.pointerId] = p;
+                try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+                var count = Object.keys(pointers).length;
+                if (count === 1) {
+                    var nodeEl = e.target.closest ? e.target.closest('[data-node]') : null;
+                    tapTarget = nodeEl ? nodeEl.getAttribute('data-node') : null;
+                    moved = false;
+                    start = p;
+                    last = p;
+                } else if (count === 2) {
+                    moved = true;
+                    beginPinch();
+                }
+            });
+
+            svg.addEventListener('pointermove', function(e) {
+                if (!pointers[e.pointerId]) return;
+                var p = localPoint(e);
+                pointers[e.pointerId] = p;
+                var ids = Object.keys(pointers);
+                if (ids.length === 1 && last) {
+                    if (!moved) {
+                        if (Math.hypot(p.x - start.x, p.y - start.y) < 6) return;
+                        moved = true;
+                    }
+                    mmState.t.x += p.x - last.x;
+                    mmState.t.y += p.y - last.y;
+                    last = p;
+                    mmApplyTransform();
+                } else if (ids.length === 2 && pinch) {
+                    var a = pointers[ids[0]];
+                    var b = pointers[ids[1]];
+                    var d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+                    var k = Math.max(0.2, Math.min(4, pinch.k * d / pinch.d));
+                    var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+                    var wx = (pinch.mid.x - pinch.tx) / pinch.k;
+                    var wy = (pinch.mid.y - pinch.ty) / pinch.k;
+                    mmState.t = { k: k, x: mid.x - wx * k, y: mid.y - wy * k };
+                    mmApplyTransform();
+                }
+            });
+
+            function endPointer(e) {
+                if (!pointers[e.pointerId]) return;
+                var wasSingle = Object.keys(pointers).length === 1;
+                delete pointers[e.pointerId];
+                if (wasSingle && !moved && e.type === 'pointerup') {
+                    mmSelect(tapTarget);
+                }
+                var remaining = Object.keys(pointers);
+                if (remaining.length === 1) {
+                    // 두 손가락 중 하나를 떼면 남은 손가락으로 자연스럽게 이동을 이어간다
+                    last = pointers[remaining[0]];
+                    start = last;
+                    pinch = null;
+                } else if (remaining.length === 0) {
+                    last = null;
+                    pinch = null;
+                }
+            }
+            svg.addEventListener('pointerup', endPointer);
+            svg.addEventListener('pointercancel', endPointer);
+
+            svg.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                var p = localPoint(e);
+                mmZoomAt(p.x, p.y, e.deltaY < 0 ? 1.15 : 1 / 1.15);
+            }, { passive: false });
+        }
+
+        // 선택한 노드와 관계된 것만 또렷하게, 나머지는 흐리게
+        function mmSelect(id, skipScroll) {
+            mmState.selected = id || null;
+            var info = document.getElementById('mm-info');
+            var svg = document.getElementById('mm-svg');
+            if (!svg || !mmGraph) return;
+            var g = mmGraph.g;
+
+            var related = null;
+            if (id && g.nodes[id]) {
+                related = {};
+                related[id] = true;
+                g.adj[id].forEach(function(n) {
+                    related[n] = true;
+                    if (g.nodes[n].kind === 'hub') g.adj[n].forEach(function(m) { related[m] = true; });
+                });
+            }
+            svg.querySelectorAll('[data-node]').forEach(function(el) {
+                el.style.opacity = !related || related[el.getAttribute('data-node')] ? '1' : '0.18';
+            });
+            svg.querySelectorAll('[data-edge]').forEach(function(el) {
+                var e = mmGraph.edges[+el.getAttribute('data-edge')];
+                el.style.opacity = !related || (related[e.a] && related[e.b]) ? '1' : '0.12';
+            });
+
+            if (!related) {
+                info.style.display = 'none';
+                return;
+            }
+            info.innerHTML = mmInfoHtml(g, id);
+            info.style.display = 'block';
+            if (!skipScroll) mmEnsureVisible(g.nodes[id]);
+        }
+
+        // 선택한 노드가 정보 카드 뒤에 가려지거나 화면 밖이면 보이는 곳으로 옮긴다
+        function mmEnsureVisible(node) {
+            var svg = document.getElementById('mm-svg');
+            if (!svg || !node) return;
+            var size = mmSvgSize(svg);
+            var visibleH = mmVisibleHeight(svg);
+            var t = mmState.t;
+            var sx = t.x + node.x * t.k;
+            var sy = t.y + node.y * t.k;
+            var margin = 50;
+            if (sy < margin || sy > visibleH - margin || sx < margin || sx > size.w - margin) {
+                t.x += size.w / 2 - sx;
+                t.y += visibleH / 2 - sy;
+                mmApplyTransform();
+            }
+        }
+
+        function mmInfoHtml(g, id) {
+            var n = g.nodes[id];
+            var idAttr = mmEscape(id);
+            var isFocus = mmState.focus === id;
+            var html;
+            if (n.kind === 'hub') {
+                var members = g.adj[id].map(function(m) { return g.nodes[m].customer; });
+                html = '<div class="mm-info-title">' + mmEscape(mmHubLabel(n)) + ' ' + MM_HUB_STYLE[n.type].label + '</div>' +
+                    '<div class="mm-info-sub">' + members.length + '명</div><ul>' +
+                    members.map(function(c) {
+                        return '<li>' + mmEscape((c.rank ? c.rank + ' ' : '') + c.name) + (c.position ? ' · ' + mmEscape(c.position) : '') + '</li>';
+                    }).join('') + '</ul>';
+            } else {
+                var c = n.customer;
+                var sub = [c.service, c.organization, c.position].filter(Boolean).map(mmEscape).join(' · ');
+                var lines = [];
+                g.adj[id].forEach(function(m) {
+                    var other = g.nodes[m];
+                    if (other.kind === 'person') {
+                        lines.push('🔗 직접 관계: ' + mmEscape(other.customer.name));
+                    } else {
+                        var names = g.adj[m].filter(function(x) { return x !== id; }).map(function(x) { return g.nodes[x].customer.name; });
+                        var shown = names.slice(0, 5).map(mmEscape).join(', ') + (names.length > 5 ? ' 외 ' + (names.length - 5) + '명' : '');
+                        lines.push(mmEscape(mmHubLabel(other)) + ' ' + MM_HUB_STYLE[other.type].label + ': ' + shown);
+                    }
+                });
+                html = '<div class="mm-info-title">' + (keyCustomerIds.includes(c.id) ? '⭐ ' : '') + mmEscape((c.rank ? c.rank + ' ' : '') + c.name) + '</div>' +
+                    (sub ? '<div class="mm-info-sub">' + sub + '</div>' : '') +
+                    (lines.length ? '<ul>' + lines.map(function(l) { return '<li>' + l + '</li>'; }).join('') + '</ul>'
+                                  : '<ul><li>아직 연결된 고객이 없습니다</li></ul>');
+            }
+            html += '<div class="mm-info-actions">';
+            if (n.kind === 'person') {
+                html += '<button class="btn btn-primary" data-mm-action="edit" data-mm-id="' + idAttr + '">상세보기/수정</button>';
+            }
+            if (!isFocus) {
+                html += '<button class="btn btn-secondary" data-mm-action="focus" data-mm-id="' + idAttr + '">' + (n.kind === 'hub' ? '이 그룹 중심으로' : '이 사람 중심으로') + '</button>';
+            }
+            html += '<button class="btn btn-secondary" data-mm-action="close">닫기</button></div>';
+            return html;
+        }
+
+        function mmHandleInfoClick(e) {
+            var btn = e.target.closest('[data-mm-action]');
+            if (!btn || !mmGraph) return;
+            var action = btn.getAttribute('data-mm-action');
+            var id = btn.getAttribute('data-mm-id');
+            if (action === 'close') {
+                mmSelect(null);
+            } else if (action === 'focus') {
+                mmState.focus = id;
+                mmState.selected = id;
+                changeVisualizationType();
+            } else if (action === 'edit') {
+                var node = mmGraph.g.nodes[id];
+                if (node && node.customer) editCustomer(node.customer.id);
+            }
+        }
+
+        function mmResetFocus() {
+            mmState.focus = null;
+            changeVisualizationType();
+        }
+
+        function mmSetDepth(value) {
+            mmState.depth = parseInt(value, 10) === 2 ? 2 : 1;
+            changeVisualizationType();
+        }
+
+        function mmToggleIsolated(show) {
+            mmState.showIsolated = !!show;
+            changeVisualizationType();
+        }
+
+        function mmSearch() {
+            var input = document.getElementById('mm-search');
+            var term = input ? input.value.trim() : '';
+            if (!term || !mmGraph) return;
+            var match = Object.keys(mmGraph.g.nodes).map(function(id) { return mmGraph.g.nodes[id]; })
+                .filter(function(n) { return n.kind === 'person' && n.customer.name && n.customer.name.includes(term); })[0];
+            if (!match) {
+                alert('"' + term + '" 이름의 고객을 찾을 수 없습니다.\n(현재 필터에 해당하는 고객 중에서 찾습니다)');
+                return;
+            }
+            mmState.focus = match.id;
+            mmState.selected = match.id;
+            changeVisualizationType();
+        }
+
         function renderNetworkGraph() {
             setTimeout(function() {
                 changeVisualizationType();
@@ -2784,6 +3601,9 @@
             var filter = document.getElementById('viz-filter') ? document.getElementById('viz-filter').value : 'all';
             
             switch(type) {
+                case 'mindmap':
+                    renderMindMapView(filter);
+                    break;
                 case 'grid':
                     renderGridView(filter);
                     break;
