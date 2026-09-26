@@ -3237,6 +3237,7 @@
             } else {
                 html += '<label><input type="checkbox" onchange="mmToggleIsolated(this.checked)"' + (mmState.showIsolated ? ' checked' : '') + '> 연결 없는 고객 표시</label>';
             }
+            html += '<button class="btn btn-secondary" onclick="mmExportPdf()" style="margin-left: auto;">PDF 저장</button>';
             html += '<div style="display: flex; gap: 8px; flex: 1 1 220px;">' +
                 '<input type="text" id="mm-search" placeholder="이름으로 찾기" style="flex: 1; min-width: 0; padding: 7px 10px; font-size: 13px;" onkeydown="if (event.key === \'Enter\') mmSearch()">' +
                 '<button class="btn btn-secondary" onclick="mmSearch()">찾기</button>' +
@@ -3558,6 +3559,293 @@
                 var node = mmGraph.g.nodes[id];
                 if (node && node.customer) editCustomer(node.customer.id);
             }
+        }
+
+        // ===== 마인드맵 PDF 저장 =====
+        // 외부 라이브러리 없이 동작하도록(오프라인 포함) 캔버스에 관계도를 다시 그린 뒤
+        // 그 이미지 한 장을 담은 A4 PDF를 직접 만든다. 한글을 PDF 텍스트로 넣으려면
+        // 글꼴을 통째로 넣어야 해서, 제목·범례까지 모두 이미지 안에 그린다.
+        var MM_PDF_FONT = '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif';
+
+        function mmExportTitleLines() {
+            var g = mmGraph.g;
+            var persons = mmGraph.nodeList.filter(function(n) { return n.kind === 'person'; }).length;
+            var scope;
+            if (mmState.focus && g.nodes[mmState.focus]) {
+                var fn = g.nodes[mmState.focus];
+                scope = (fn.kind === 'hub' ? mmHubLabel(fn) : fn.customer.name) + ' 중심 · ' + mmState.depth + '단계 연결';
+            } else {
+                scope = '전체 관계도';
+            }
+            var parts = [scope, '고객 ' + persons + '명', '연결 ' + mmGraph.edges.length + '개'];
+            var filterEl = document.getElementById('viz-filter');
+            if (filterEl && filterEl.value !== 'all') {
+                parts.push('필터: ' + filterEl.options[filterEl.selectedIndex].text);
+            }
+            var d = new Date();
+            var dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            return { subtitle: parts.join(' · '), date: dateStr };
+        }
+
+        function mmCanvasRoundRect(ctx, x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+
+        function mmDrawExportCanvas(info) {
+            var g = mmGraph.g;
+            var nodes = mmGraph.nodeList;
+            var xs = nodes.map(function(n) { return n.x; });
+            var ys = nodes.map(function(n) { return n.y; });
+            var minX = Math.min.apply(null, xs) - 70, maxX = Math.max.apply(null, xs) + 70;
+            var minY = Math.min.apply(null, ys) - 40, maxY = Math.max.apply(null, ys) + 60;
+            var gw = maxX - minX, gh = maxY - minY;
+
+            // A4 비율(1:√2). 그래프 모양에 맞춰 가로/세로 방향을 고른다.
+            var landscape = gw > gh;
+            var W = landscape ? 2400 : 1697;
+            var H = landscape ? 1697 : 2400;
+            var canvas = document.createElement('canvas');
+            canvas.width = W;
+            canvas.height = H;
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, W, H);
+
+            var pad = 90;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillStyle = '#1d1d1f';
+            ctx.font = '700 52px ' + MM_PDF_FONT;
+            ctx.fillText('고객 관계도', pad, pad + 44);
+            ctx.fillStyle = '#6e6e73';
+            ctx.font = '400 28px ' + MM_PDF_FONT;
+            ctx.fillText(info.subtitle, pad, pad + 92);
+            ctx.textAlign = 'right';
+            ctx.fillText(info.date + ' 기준', W - pad, pad + 44);
+            ctx.strokeStyle = '#e5e5ea';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(pad, pad + 122);
+            ctx.lineTo(W - pad, pad + 122);
+            ctx.stroke();
+
+            var legendH = 70;
+            var area = { x: pad, y: pad + 150, w: W - 2 * pad, h: H - (pad + 150) - pad - legendH };
+            var k = Math.min(area.w / gw, area.h / gh, 4);
+            var ox = area.x + (area.w - gw * k) / 2 - minX * k;
+            var oy = area.y + (area.h - gh * k) / 2 - minY * k;
+            function px(n) { return ox + n.x * k; }
+            function py(n) { return oy + n.y * k; }
+
+            ctx.lineCap = 'round';
+            mmGraph.edges.forEach(function(e) {
+                var a = g.nodes[e.a];
+                var b = g.nodes[e.b];
+                var direct = e.type === 'direct';
+                ctx.strokeStyle = direct ? MM_DIRECT_COLOR : '#c3c8cf';
+                ctx.lineWidth = (direct ? 2.5 : 1.2) * k;
+                ctx.beginPath();
+                ctx.moveTo(px(a), py(a));
+                ctx.lineTo(px(b), py(b));
+                ctx.stroke();
+            });
+
+            ctx.textAlign = 'center';
+            nodes.filter(function(n) { return n.kind === 'hub'; }).forEach(function(n) {
+                var style = MM_HUB_STYLE[n.type];
+                var w = mmHubWidth(n) * k;
+                var h = 26 * k;
+                mmCanvasRoundRect(ctx, px(n) - w / 2, py(n) - h / 2, w, h, h / 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.strokeStyle = style.color;
+                ctx.lineWidth = 1.5 * k;
+                ctx.stroke();
+                ctx.fillStyle = style.color;
+                ctx.font = '600 ' + (11 * k) + 'px ' + MM_PDF_FONT;
+                ctx.fillText(mmHubLabel(n), px(n), py(n) + 4 * k);
+            });
+
+            function haloText(text, x, y) {
+                ctx.lineWidth = 3 * k;
+                ctx.lineJoin = 'round';
+                ctx.strokeStyle = '#ffffff';
+                ctx.strokeText(text, x, y);
+                ctx.fillText(text, x, y);
+            }
+
+            nodes.filter(function(n) { return n.kind === 'person'; }).forEach(function(n) {
+                var c = n.customer;
+                var x = px(n), y = py(n);
+                var r = mmNodeRadius(c) * k;
+                var isKey = keyCustomerIds.includes(c.id);
+                if (mmState.focus === n.id) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, r + 7 * k, 0, Math.PI * 2);
+                    ctx.strokeStyle = MM_DIRECT_COLOR;
+                    ctx.lineWidth = 2.5 * k;
+                    ctx.stroke();
+                }
+                if (isKey) {
+                    ctx.beginPath();
+                    ctx.arc(x, y, r + 3 * k, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#d64545';
+                    ctx.lineWidth = 2 * k;
+                    ctx.stroke();
+                }
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fillStyle = mmCategoryColor(c.service);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2 * k;
+                ctx.stroke();
+
+                ctx.fillStyle = '#1d1d1f';
+                ctx.font = '600 ' + (12 * k) + 'px ' + MM_PDF_FONT;
+                haloText((isKey ? '⭐ ' : '') + (c.name || ''), x, y + r + 15 * k);
+                if (c.rank) {
+                    ctx.fillStyle = '#6e6e73';
+                    ctx.font = '400 ' + (10 * k) + 'px ' + MM_PDF_FONT;
+                    haloText(c.rank, x, y + r + 28 * k);
+                }
+            });
+
+            // 범례
+            var legend = [
+                { kind: 'dot', color: '#3a5ba9', label: '군' },
+                { kind: 'dot', color: '#b8862e', label: '정출연' },
+                { kind: 'dot', color: '#7a5aa6', label: '공무원' },
+                { kind: 'dot', color: '#2f8f6f', label: '기업' },
+                { kind: 'ring', color: '#d64545', label: '핵심 고객' },
+                { kind: 'line', color: MM_DIRECT_COLOR, label: '직접 등록한 관계' },
+                { kind: 'line', color: '#c3c8cf', label: '동기·동문·같은 기관' }
+            ];
+            ctx.textAlign = 'left';
+            ctx.font = '400 28px ' + MM_PDF_FONT;
+            var lx = pad;
+            var ly = H - pad - 20;
+            legend.forEach(function(item) {
+                if (item.kind === 'line') {
+                    ctx.strokeStyle = item.color;
+                    ctx.lineWidth = 5;
+                    ctx.beginPath();
+                    ctx.moveTo(lx, ly - 8);
+                    ctx.lineTo(lx + 30, ly - 8);
+                    ctx.stroke();
+                    lx += 42;
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(lx + 10, ly - 8, 10, 0, Math.PI * 2);
+                    if (item.kind === 'dot') {
+                        ctx.fillStyle = item.color;
+                        ctx.fill();
+                    } else {
+                        ctx.strokeStyle = item.color;
+                        ctx.lineWidth = 4;
+                        ctx.stroke();
+                    }
+                    lx += 30;
+                }
+                ctx.fillStyle = '#6e6e73';
+                ctx.fillText(item.label, lx, ly);
+                lx += ctx.measureText(item.label).width + 40;
+            });
+
+            return { canvas: canvas, landscape: landscape };
+        }
+
+        // JPEG 이미지 한 장을 A4 한 페이지에 꽉 채운 PDF 바이트를 만든다
+        function mmBuildImagePdf(jpegDataUrl, imgW, imgH, landscape) {
+            var pageW = landscape ? 841.89 : 595.28;
+            var pageH = landscape ? 595.28 : 841.89;
+            var bin = atob(jpegDataUrl.split(',')[1]);
+            var img = new Uint8Array(bin.length);
+            for (var i = 0; i < bin.length; i++) img[i] = bin.charCodeAt(i);
+
+            var chunks = [];
+            var length = 0;
+            var offsets = [];
+            function add(part) {
+                var bytes = part;
+                if (typeof part === 'string') {
+                    bytes = new Uint8Array(part.length);
+                    for (var j = 0; j < part.length; j++) bytes[j] = part.charCodeAt(j) & 0xff;
+                }
+                chunks.push(bytes);
+                length += bytes.length;
+            }
+            function obj(num, body) {
+                offsets[num] = length;
+                add(num + ' 0 obj\n' + body + '\nendobj\n');
+            }
+
+            add('%PDF-1.4\n%ÿÿÿÿ\n');
+            obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+            obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+            obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pageW.toFixed(2) + ' ' + pageH.toFixed(2) + ']' +
+                ' /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+            offsets[4] = length;
+            add('4 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + imgW + ' /Height ' + imgH +
+                ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + img.length + ' >>\nstream\n');
+            add(img);
+            add('\nendstream\nendobj\n');
+            var content = 'q ' + pageW.toFixed(2) + ' 0 0 ' + pageH.toFixed(2) + ' 0 0 cm /Im0 Do Q';
+            obj(5, '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream');
+
+            var xrefAt = length;
+            var xref = 'xref\n0 6\n0000000000 65535 f \n';
+            for (var n = 1; n <= 5; n++) xref += String(offsets[n]).padStart(10, '0') + ' 00000 n \n';
+            add(xref + 'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + xrefAt + '\n%%EOF\n');
+
+            var out = new Uint8Array(length);
+            var pos = 0;
+            chunks.forEach(function(c) { out.set(c, pos); pos += c.length; });
+            return out;
+        }
+
+        function mmDownloadBlob(blob, filename) {
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
+        }
+
+        function mmExportPdf() {
+            if (!mmGraph || mmGraph.nodeList.length === 0) {
+                alert('저장할 관계도가 없습니다.');
+                return;
+            }
+            var info = mmExportTitleLines();
+            var drawn = mmDrawExportCanvas(info);
+            var jpeg = drawn.canvas.toDataURL('image/jpeg', 0.92);
+            var pdf = mmBuildImagePdf(jpeg, drawn.canvas.width, drawn.canvas.height, drawn.landscape);
+            var filename = '고객관계도-' + info.date + '.pdf';
+            var blob = new Blob([pdf], { type: 'application/pdf' });
+
+            // 아이폰/아이패드 홈 화면 앱에서는 일반 다운로드가 불편하므로 공유 시트
+            // (파일에 저장·AirDrop·메일 등)로 넘긴다. 지원하지 않으면 바로 다운로드.
+            var file = null;
+            try { file = new File([blob], filename, { type: 'application/pdf' }); } catch (e) {}
+            var touchDevice = navigator.maxTouchPoints > 0;
+            if (file && touchDevice && navigator.canShare && navigator.canShare({ files: [file] })) {
+                navigator.share({ files: [file], title: '고객 관계도' }).catch(function(err) {
+                    if (err && err.name === 'AbortError') return;
+                    mmDownloadBlob(blob, filename);
+                });
+                return;
+            }
+            mmDownloadBlob(blob, filename);
         }
 
         function mmResetFocus() {
