@@ -1150,6 +1150,67 @@
             .pj-controls select { flex: 1 1 45%; }
             .pj-member-row select { flex-basis: 110px; }
         }
+
+        /* ---- 관계 진단 / 소개 경로 / 기수 찾기 ---- */
+        .pj-health {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .pj-health.good { color: #2f9e5b; background: rgba(47,158,91,0.12); }
+        .pj-health.warn { color: #a8761c; background: rgba(184,134,46,0.14); }
+        .pj-health.risk { color: #d64545; background: rgba(214,69,69,0.1); }
+        .pj-card-issue { font-size: 12px; color: var(--danger); margin-top: 8px; }
+        .pj-card-issue.warn { color: #a8761c; }
+        .pj-issue {
+            font-size: 13px;
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+        .pj-issue.risk { background: rgba(214,69,69,0.07); color: #b23b3b; }
+        .pj-issue.warn { background: rgba(184,134,46,0.09); color: #8a6214; }
+        .pj-issue.good { background: rgba(47,158,91,0.09); color: #2a7d4b; }
+        .pj-issue-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+        .path-card {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            background: var(--surface);
+        }
+        .path-card-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+        .path-node {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+        .path-node.me { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+        .path-node.target { border-color: var(--accent); }
+        .path-link { font-size: 12px; color: var(--text-secondary); padding: 2px 0 6px 14px; }
+        .kisu-cand {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 12px;
+            margin-bottom: 8px;
+        }
+        .kisu-cand.high { border-color: var(--accent); }
+        .kisu-conf { font-size: 12px; color: var(--text-secondary); }
+        .kisu-cand.high .kisu-conf { color: var(--accent); }
+        .kisu-snippet { font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.5; word-break: break-all; }
+        .kisu-snippet mark { background: rgba(58,91,169,0.18); color: var(--text-primary); padding: 0 2px; border-radius: 3px; }
+        .kisu-filled { box-shadow: 0 0 0 3px rgba(58,91,169,0.35) !important; transition: box-shadow 0.3s; }
     </style>
 </head>
 <body>
@@ -1236,6 +1297,7 @@
                                 <option value="대학교">대학교</option>
                                 <option value="핵심고객">핵심 고객만</option>
                                 <option value="미분류">소속 미분류</option>
+                                <option value="기수미입력">기수 미입력 군인</option>
                             </optgroup>
                         </select>
                     </div>
@@ -1286,9 +1348,9 @@
                         <div class="summary-number" id="pj-sum-soon">0</div>
                         <div class="summary-label">30일 내 일정</div>
                     </div>
-                    <div class="summary-card" onclick="setProjectStatusFilter('수주')">
-                        <div class="summary-number" id="pj-sum-won">0</div>
-                        <div class="summary-label">수주</div>
+                    <div class="summary-card" onclick="setProjectStatusFilter('risk')">
+                        <div class="summary-number" id="pj-sum-risk">0</div>
+                        <div class="summary-label">관계 점검 필요</div>
                     </div>
                 </div>
 
@@ -1299,6 +1361,8 @@
                         <option value="all">전체 (종료 포함)</option>
                         <option value="proposal">제안 단계</option>
                         <option value="soon">30일 내 일정</option>
+                        <option value="risk">관계 점검 필요</option>
+                        <option value="수주">수주</option>
                     </select>
                     <select id="project-sort" onchange="renderProjectList()">
                         <option value="next">다음 일정순</option>
@@ -1500,6 +1564,7 @@
                                 <option value="육사">육사</option>
                                 <option value="해사">해사</option>
                                 <option value="공사">공사</option>
+                                <option value="3사">3사</option>
                                 <option value="학사">학사</option>
                                 <option value="학군">학군</option>
                                 <option value="일반대">일반대</option>
@@ -1729,6 +1794,7 @@
                             <option value="육사">육사</option>
                             <option value="해사">해사</option>
                             <option value="공사">공사</option>
+                            <option value="3사">3사</option>
                             <option value="학사">학사</option>
                             <option value="학군">학군</option>
                             <option value="일반대">일반대</option>
@@ -1736,7 +1802,10 @@
                     </div>
                     <div class="form-group" data-military-only>
                         <label>기수</label>
-                        <input type="text" id="edit-class-number">
+                        <div style="display: flex; gap: 6px;">
+                            <input type="text" id="edit-class-number" style="flex: 1; min-width: 0;">
+                            <button type="button" class="btn btn-secondary" onclick="openKisuModal()" style="white-space: nowrap; padding-left: 12px; padding-right: 12px;">🔎 기사에서 찾기</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>출신학교</label>
@@ -1782,6 +1851,10 @@
                 <div class="form-group">
                     <label>비고</label>
                     <textarea id="edit-notes"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <button type="button" class="btn btn-secondary" onclick="openPathModal(currentEditId)" style="width: 100%;">🧭 이 사람까지 소개 경로 찾기</button>
                 </div>
 
                 <div class="form-group">
@@ -1896,7 +1969,7 @@
                     </div>
                     <div class="form-group">
                         <label>발주/주관기관</label>
-                        <input type="text" id="pj-agency" list="pj-agency-list" placeholder="예: 방위사업청, ADD">
+                        <input type="text" id="pj-agency" list="pj-agency-list" placeholder="예: 방위사업청, ADD" onchange="renderProjectHealth()">
                         <datalist id="pj-agency-list"></datalist>
                     </div>
                     <div class="form-group">
@@ -1916,7 +1989,7 @@
                     </div>
                     <div class="form-group">
                         <label>영업 상태</label>
-                        <select id="pj-status">
+                        <select id="pj-status" onchange="renderProjectHealth()">
                             <option value="관심">관심</option>
                             <option value="정보수집">정보수집</option>
                             <option value="제안준비">제안준비</option>
@@ -1944,9 +2017,14 @@
                 <div class="form-group">
                     <label>다음 일정</label>
                     <div style="display: flex; gap: 8px;">
-                        <input type="date" id="pj-next-date" style="flex: 0 0 150px; min-width: 0;">
+                        <input type="date" id="pj-next-date" style="flex: 0 0 150px; min-width: 0;" onchange="renderProjectHealth()">
                         <input type="text" id="pj-next-title" placeholder="예: 제안서 제출, 기술협의회" style="flex: 1; min-width: 0;">
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label>관계 진단</label>
+                    <div class="pj-box" id="pj-health-box"></div>
                 </div>
 
                 <div class="form-group">
@@ -1980,6 +2058,41 @@
                     <button type="button" id="pj-delete-btn" class="btn btn-danger" onclick="deleteProject()" style="flex: 1;">삭제</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- 소개 경로 모달 -->
+    <div id="path-modal" class="modal">
+        <div class="modal-content" style="max-width: 560px;">
+            <div class="modal-header">
+                <h2 id="path-modal-title">소개 경로</h2>
+                <button class="close-btn" onclick="closePathModal()">&times;</button>
+            </div>
+            <div id="path-modal-body" style="padding: 4px 0 10px;"></div>
+        </div>
+    </div>
+
+    <!-- 기사에서 기수 찾기 모달 -->
+    <div id="kisu-modal" class="modal">
+        <div class="modal-content" style="max-width: 560px;">
+            <div class="modal-header">
+                <h2 id="kisu-modal-title">기수 찾기</h2>
+                <button class="close-btn" onclick="closeKisuModal()">&times;</button>
+            </div>
+            <div style="padding: 4px 0 10px;">
+                <div style="font-weight: 600; margin-bottom: 6px;">1. 기사 검색</div>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">검색어: <span id="kisu-query" style="color: var(--text-primary);"></span></div>
+                <div style="display: flex; gap: 8px; margin-bottom: 18px;">
+                    <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="openKisuSearch('naver')">네이버 뉴스</button>
+                    <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="openKisuSearch('google')">구글 뉴스</button>
+                </div>
+                <div style="font-weight: 600; margin-bottom: 6px;">2. 기사 본문 붙여넣기</div>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">기수가 나온 기사(인사 발령·진급 기사 등)의 본문을 복사해서 붙여넣으세요.</div>
+                <button type="button" class="btn btn-secondary" style="width: 100%; margin-bottom: 8px;" onclick="pasteKisuText()">📋 복사한 내용 붙여넣기</button>
+                <textarea id="kisu-text" rows="5" placeholder="예: … 육사 51기인 홍길동 준장은 …" oninput="analyzeKisuText()" style="width: 100%; box-sizing: border-box;"></textarea>
+                <div style="font-weight: 600; margin: 16px 0 6px;">3. 찾은 기수</div>
+                <div id="kisu-results"><div style="font-size: 13px; color: var(--text-tertiary);">기사를 붙여넣으면 여기에 표시됩니다.</div></div>
+            </div>
         </div>
     </div>
 
@@ -3452,6 +3565,7 @@
             if (filter === 'active') return !PJ_CLOSED.includes(p.status);
             if (filter === 'proposal') return PJ_PROPOSAL.includes(p.status);
             if (filter === 'soon') return !PJ_CLOSED.includes(p.status) && days !== null && days >= 0 && days <= 30;
+            if (filter === 'risk') return !PJ_CLOSED.includes(p.status) && projectHealth(p).level === 'risk';
             return p.status === filter;
         }
 
@@ -3488,7 +3602,7 @@
             document.getElementById('pj-sum-active').textContent = projects.filter(function(p) { return projectMatchesFilter(p, 'active'); }).length;
             document.getElementById('pj-sum-proposal').textContent = projects.filter(function(p) { return projectMatchesFilter(p, 'proposal'); }).length;
             document.getElementById('pj-sum-soon').textContent = projects.filter(function(p) { return projectMatchesFilter(p, 'soon'); }).length;
-            document.getElementById('pj-sum-won').textContent = projects.filter(function(p) { return p.status === '수주'; }).length;
+            document.getElementById('pj-sum-risk').textContent = projects.filter(function(p) { return projectMatchesFilter(p, 'risk'); }).length;
 
             var list = projects.filter(function(p) { return projectMatchesFilter(p, filter) && projectMatchesSearch(p, term); });
             list.sort(function(a, b) {
@@ -3533,10 +3647,19 @@
                         (keyCustomerIds.includes(c.id) ? '⭐ ' : '') + mmEscape(pjCustomerLabel(c)) +
                         (m.role ? ' <small>' + mmEscape(m.role) + '</small>' : '') + '</button>';
                 }).join('');
+                var healthHtml = '';
+                if (!PJ_CLOSED.includes(p.status)) {
+                    var h = projectHealth(p);
+                    var top = h.issues[0];
+                    healthHtml = '<div style="margin-top: 10px;">' + pjHealthBadge(h) + '</div>' +
+                        (top ? '<div class="pj-card-issue ' + top.level + '">' + (top.level === 'risk' ? '⚠️ ' : '• ') + mmEscape(top.text) +
+                            (h.issues.length > 1 ? ' 외 ' + (h.issues.length - 1) + '건' : '') + '</div>' : '');
+                }
                 return '<div class="pj-card' + (PJ_CLOSED.includes(p.status) ? ' closed' : '') + '" onclick="openProjectModal(' + p.id + ')">' +
                     '<div class="pj-card-head"><div style="min-width: 0;"><div class="pj-card-title">' + mmEscape(p.name) + '</div>' +
                     (sub ? '<div class="pj-card-sub">' + sub + '</div>' : '') + '</div>' + pjStatusPill(p.status) + '</div>' +
                     (meta.length ? '<div class="pj-meta">' + meta.join('') + '</div>' : '') +
+                    healthHtml +
                     (people ? '<div class="pj-people">' + people + '</div>' : '') +
                     '</div>';
             }).join('');
@@ -3618,6 +3741,7 @@
 
         function setProjectMemberRole(index, role) {
             if (pjDraft.members[index]) pjDraft.members[index].role = role;
+            renderProjectHealth();
         }
 
         function renderProjectMembers() {
@@ -3637,6 +3761,7 @@
                     '<button type="button" class="pj-remove" onclick="removeProjectMember(' + i + ')" aria-label="제외">&times;</button></div>';
             }).join('');
             box.innerHTML = rows || '<div style="font-size: 13px; color: var(--text-tertiary);">아직 연결된 고객이 없습니다.</div>';
+            renderProjectHealth();
         }
 
         function addProjectLogEntry() {
@@ -3776,6 +3901,413 @@
 
         function openNewProjectForCurrentCustomer() {
             openProjectModal(null, currentEditId);
+        }
+
+        // ---- ① 사업별 키맨 커버리지 (관계 건강도) ----
+        // 사업마다 '결정에 영향을 주는 역할이 비어 있지 않은지', '그 사람들과 최근에
+        // 연락했는지'를 점수로 보여줘서 결정권자를 놓치는 일을 미리 막는다.
+        var PJ_KEY_ROLES = ['의사결정권자', '사업담당(PM)'];
+
+        function projectHealth(p) {
+            var issues = [];
+            var score = 100;
+            var members = (p.members || []).map(function(m) {
+                return { role: m.role || '', c: customers.find(function(x) { return x.id === m.customerId; }) };
+            }).filter(function(x) { return x.c; });
+            function has(role) { return members.some(function(x) { return x.role === role; }); }
+
+            if (!has('의사결정권자')) { score -= 30; issues.push({ level: 'risk', text: '의사결정권자가 연결되지 않았습니다', role: '의사결정권자' }); }
+            if (!has('사업담당(PM)')) { score -= 20; issues.push({ level: 'risk', text: '사업담당(PM)이 연결되지 않았습니다', role: '사업담당(PM)' }); }
+            if (!has('실무자')) { score -= 10; issues.push({ level: 'warn', text: '실무자가 연결되지 않았습니다', role: '실무자' }); }
+            if (PJ_PROPOSAL.includes(p.status) && !has('평가위원')) {
+                score -= 10;
+                issues.push({ level: 'warn', text: '제안 단계인데 평가위원 정보가 없습니다', role: '평가위원' });
+            }
+
+            var keyPenalty = 0, otherPenalty = 0;
+            members.forEach(function(x) {
+                if (x.role === '경쟁사') return;
+                var isKey = PJ_KEY_ROLES.includes(x.role);
+                var days = getDaysSinceLastContact(x.c);
+                if (days === null || days > (isKey ? 60 : 90)) {
+                    if (isKey) keyPenalty += 15; else otherPenalty += 5;
+                    issues.push({
+                        level: isKey ? 'risk' : 'warn',
+                        text: pjCustomerLabel(x.c) + (x.role ? '(' + x.role + ')' : '') + ' — ' + (days === null ? '연락 기록 없음' : days + '일간 연락 없음'),
+                        customerId: x.c.id
+                    });
+                }
+            });
+            score -= Math.min(keyPenalty, 30) + Math.min(otherPenalty, 15);
+
+            var days = pjDaysUntil(p.nextDate);
+            if (days !== null && days >= 0 && days <= 30) {
+                var keyMembers = members.filter(function(x) { return PJ_KEY_ROLES.includes(x.role); });
+                var recent = keyMembers.some(function(x) {
+                    var d = getDaysSinceLastContact(x.c);
+                    return d !== null && d <= 30;
+                });
+                if (!recent) {
+                    score -= 15;
+                    issues.unshift({ level: 'risk', text: (p.nextTitle || '다음 일정') + ' ' + pjDdayLabel(days) + '인데 최근 30일간 의사결정권자·PM과 연락이 없습니다' });
+                }
+            }
+
+            score = Math.max(0, score);
+            var level = score >= 80 ? 'good' : (score >= 50 ? 'warn' : 'risk');
+            issues.sort(function(a, b) { return (a.level === 'risk' ? 0 : 1) - (b.level === 'risk' ? 0 : 1); });
+            return { score: score, level: level, issues: issues };
+        }
+
+        var PJ_HEALTH_LABEL = { good: '🟢 관계 양호', warn: '🟡 관계 주의', risk: '🔴 관계 위험' };
+
+        function pjHealthBadge(h) {
+            return '<span class="pj-health ' + h.level + '">' + PJ_HEALTH_LABEL[h.level] + ' ' + h.score + '</span>';
+        }
+
+        // 빈 역할을 채울 후보: 발주/주관기관과 같은 기관 소속이면서 아직 연결되지 않은 고객
+        function pjRoleCandidates(agency, memberIds) {
+            var a = (agency || '').replace(/\(.*?\)/g, '').trim();
+            if (!a) return [];
+            return customers.filter(function(c) {
+                if (memberIds.includes(c.id) || !c.organization) return false;
+                var org = c.organization.trim();
+                return org.includes(a) || a.includes(org) || getServiceAliasTerms(c).some(function(t) { return t && a.includes(t); });
+            }).sort(function(x, y) {
+                return (keyCustomerIds.includes(y.id) ? 1 : 0) - (keyCustomerIds.includes(x.id) ? 1 : 0) || getRankWeight(x.rank) - getRankWeight(y.rank);
+            }).slice(0, 5);
+        }
+
+        // 사업 모달 안의 '관계 진단' — 입력 중인 내용 기준으로 바로바로 다시 계산한다
+        function renderProjectHealth() {
+            var box = document.getElementById('pj-health-box');
+            if (!box) return;
+            var draft = {
+                status: document.getElementById('pj-status').value,
+                nextDate: document.getElementById('pj-next-date').value,
+                nextTitle: document.getElementById('pj-next-title').value,
+                members: pjDraft.members
+            };
+            if (PJ_CLOSED.includes(draft.status)) {
+                box.innerHTML = '<div style="font-size: 13px; color: var(--text-tertiary);">실주·보류된 사업은 진단하지 않습니다.</div>';
+                return;
+            }
+            var h = projectHealth(draft);
+            var agency = document.getElementById('pj-agency').value;
+            var memberIds = pjDraft.members.map(function(m) { return m.customerId; });
+            var html = '<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">' + pjHealthBadge(h) +
+                '<span style="font-size: 12px; color: var(--text-secondary);">역할 공백·연락 공백·마감 임박을 기준으로 계산</span></div>';
+            if (!h.issues.length) {
+                html += '<div style="font-size: 13px; color: var(--success);">핵심 역할이 모두 연결되어 있고 최근 연락도 유지되고 있습니다 👍</div>';
+            }
+            h.issues.forEach(function(issue) {
+                html += '<div class="pj-issue ' + issue.level + '"><div>' + (issue.level === 'risk' ? '⚠️ ' : '• ') + mmEscape(issue.text) + '</div>';
+                if (issue.customerId) {
+                    html += '<div class="pj-issue-actions">' +
+                        '<button type="button" class="pj-chip" onclick="closeProjectModal(); editCustomer(' + issue.customerId + ')">연락 기록 남기기</button>' +
+                        '<button type="button" class="pj-chip" onclick="openPathModal(' + issue.customerId + ')">🧭 소개 경로</button></div>';
+                } else if (issue.role) {
+                    var cands = pjRoleCandidates(agency, memberIds);
+                    if (cands.length) {
+                        html += '<div class="pj-issue-actions"><span style="font-size: 12px; color: var(--text-secondary);">' + mmEscape(agency) + ' 소속 후보:</span>' +
+                            cands.map(function(c) {
+                                return '<button type="button" class="pj-chip" onclick="addProjectMemberWithRole(' + c.id + ', \'' + issue.role + '\')">+ ' + mmEscape(pjCustomerLabel(c)) + '</button>';
+                            }).join('') + '</div>';
+                    }
+                }
+                html += '</div>';
+            });
+            box.innerHTML = html;
+        }
+
+        function addProjectMemberWithRole(customerId, role) {
+            var existing = pjDraft.members.find(function(m) { return m.customerId === customerId; });
+            if (existing) existing.role = role;
+            else pjDraft.members.push({ customerId: customerId, role: role });
+            renderProjectMembers();
+        }
+
+        // ---- ② 소개 경로 찾기 ----
+        // 최근 연락한 고객(=지금 부탁할 수 있는 사람)을 출발점으로, 목표 인물까지
+        // 동기·사업·같은 기관·동문·직접 관계를 따라 가장 가까운 경로를 찾는다.
+        var PATH_WEIGHT = { direct: 1, class: 1.2, project: 1.3, org: 1.5, school: 1.6 };
+        var PATH_KNOWN_DAYS = 180;
+
+        function buildPersonLinks() {
+            var g = mmBuildGraph(customers);
+            var links = {};
+            Object.keys(g.nodes).forEach(function(id) { if (g.nodes[id].kind === 'person') links[id] = []; });
+            g.edges.forEach(function(e) {
+                if (e.type !== 'direct') return;
+                links[e.a].push({ to: e.b, label: '🔗 직접 등록한 관계', w: PATH_WEIGHT.direct });
+                links[e.b].push({ to: e.a, label: '🔗 직접 등록한 관계', w: PATH_WEIGHT.direct });
+            });
+            Object.keys(g.nodes).forEach(function(id) {
+                var h = g.nodes[id];
+                if (h.kind !== 'hub') return;
+                var members = g.adj[id];
+                // 수백 명이 모인 큰 그룹일수록 '아는 사이'일 가능성이 낮으므로 약간 멀게 본다
+                var w = PATH_WEIGHT[h.type] + Math.min(0.5, members.length * 0.02);
+                var label = mmHubLabel(h) + ' ' + MM_HUB_STYLE[h.type].label;
+                members.forEach(function(a) {
+                    members.forEach(function(b) { if (a !== b) links[a].push({ to: b, label: label, w: w }); });
+                });
+            });
+            return links;
+        }
+
+        function findIntroPaths(targetId, maxPaths) {
+            var links = buildPersonLinks();
+            var start = 'p:' + targetId;
+            if (!links[start]) return { paths: [], knownCount: 0, neighbors: [] };
+            var dist = {}, prev = {}, done = {};
+            dist[start] = 0;
+            // 고객 수가 수백 명 규모라 단순 다익스트라로 충분하다
+            while (true) {
+                var u = null;
+                Object.keys(dist).forEach(function(k) { if (!done[k] && (u === null || dist[k] < dist[u])) u = k; });
+                if (u === null) break;
+                done[u] = true;
+                links[u].forEach(function(l) {
+                    var nd = dist[u] + l.w;
+                    if (dist[l.to] === undefined || nd < dist[l.to]) {
+                        dist[l.to] = nd;
+                        prev[l.to] = { from: u, label: l.label };
+                    }
+                });
+            }
+            var known = customers.filter(function(c) {
+                if (c.id === targetId) return false;
+                var d = getDaysSinceLastContact(c);
+                return d !== null && d <= PATH_KNOWN_DAYS;
+            });
+            var reachable = known.filter(function(c) { return dist['p:' + c.id] !== undefined; });
+            reachable.sort(function(a, b) {
+                return dist['p:' + a.id] - dist['p:' + b.id] || getDaysSinceLastContact(a) - getDaysSinceLastContact(b);
+            });
+            var paths = reachable.slice(0, maxPaths || 3).map(function(c) {
+                var steps = [];
+                var cur = 'p:' + c.id;
+                while (cur !== start) {
+                    var pv = prev[cur];
+                    steps.push({ id: Number(cur.slice(2)), via: pv.label });
+                    cur = pv.from;
+                }
+                steps.push({ id: targetId, via: null });
+                return { cost: dist['p:' + c.id], steps: steps };
+            });
+            var neighbors = [];
+            var seen = {};
+            links[start].forEach(function(l) {
+                if (seen[l.to]) return;
+                seen[l.to] = true;
+                neighbors.push({ id: Number(l.to.slice(2)), via: l.label });
+            });
+            return { paths: paths, knownCount: known.length, neighbors: neighbors };
+        }
+
+        function pathPersonHtml(c, extra, isTarget) {
+            var sub = [c.organization, c.department, c.position].filter(Boolean).join(' · ');
+            return '<div class="path-node' + (isTarget ? ' target' : '') + '">' +
+                '<div><div style="font-weight: 600;">' + (isTarget ? '🎯 ' : '') + (keyCustomerIds.includes(c.id) ? '⭐ ' : '') + mmEscape(pjCustomerLabel(c)) + '</div>' +
+                (sub ? '<div style="font-size: 12px; color: var(--text-secondary);">' + mmEscape(sub) + '</div>' : '') +
+                (extra ? '<div style="font-size: 12px; color: var(--accent); margin-top: 2px;">' + extra + '</div>' : '') + '</div>' +
+                (isTarget ? '' : '<button type="button" class="pj-chip" onclick="closePathModal(); closeProjectModal(); editCustomer(' + c.id + ')">보기</button>') +
+                '</div>';
+        }
+
+        function openPathModal(targetId) {
+            var target = customers.find(function(c) { return c.id === targetId; });
+            if (!target) return;
+            var result = findIntroPaths(targetId, 3);
+            document.getElementById('path-modal-title').textContent = '🧭 ' + pjCustomerLabel(target) + '까지 가는 길';
+            var html = '';
+            var targetDays = getDaysSinceLastContact(target);
+            if (targetDays !== null && targetDays <= PATH_KNOWN_DAYS) {
+                html += '<div class="pj-issue good" style="margin-bottom: 14px;">이미 직접 연락하는 사이입니다 (최근 연락 ' + (targetDays === 0 ? '오늘' : targetDays + '일 전') + ')</div>';
+            }
+            if (result.paths.length) {
+                html += '<p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">최근 ' + PATH_KNOWN_DAYS / 30 + '개월 안에 연락한 고객 중에서 가장 가까운 연결고리입니다. 첫 번째 사람에게 소개를 부탁해 보세요.</p>';
+                result.paths.forEach(function(path, i) {
+                    var first = customers.find(function(c) { return c.id === path.steps[0].id; });
+                    var d = getDaysSinceLastContact(first);
+                    html += '<div class="path-card"><div class="path-card-title">경로 ' + (i + 1) + ' · ' + (path.steps.length - 1) + '단계</div>' +
+                        '<div class="path-node me"><div style="font-weight: 600;">나</div></div>' +
+                        '<div class="path-link">↓ 최근 연락 ' + (d === 0 ? '오늘' : d + '일 전') + '</div>';
+                    path.steps.forEach(function(step, j) {
+                        var c = customers.find(function(x) { return x.id === step.id; });
+                        html += pathPersonHtml(c, '', j === path.steps.length - 1);
+                        if (step.via) html += '<div class="path-link">↓ ' + mmEscape(step.via) + '</div>';
+                    });
+                    html += '</div>';
+                });
+            } else {
+                html += '<div class="empty-state" style="padding: 18px;"><h3>연결 경로를 찾지 못했습니다</h3><p>' +
+                    (result.knownCount === 0
+                        ? '최근 ' + PATH_KNOWN_DAYS / 30 + '개월 안에 연락 기록이 있는 고객이 없어 출발점이 없습니다. 고객 상세에서 연락 기록을 남기면 경로를 찾을 수 있습니다.'
+                        : '최근 연락한 고객 중 이 사람과 동기·동문·같은 기관·같은 사업으로 이어지는 사람이 없습니다.') + '</p></div>';
+            }
+            if (result.neighbors.length) {
+                html += '<div style="margin-top: 16px;"><div style="font-weight: 600; margin-bottom: 6px;">이 사람과 직접 이어진 고객 (' + result.neighbors.length + '명)</div>' +
+                    '<div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">아직 연락 기록이 없어도, 이 중 가까운 사람을 먼저 만나면 경로가 생깁니다.</div>';
+                result.neighbors.slice(0, 8).forEach(function(n) {
+                    var c = customers.find(function(x) { return x.id === n.id; });
+                    html += pathPersonHtml(c, mmEscape(n.via), false);
+                });
+                html += '</div>';
+            }
+            document.getElementById('path-modal-body').innerHTML = html;
+            var modal = document.getElementById('path-modal');
+            modal.classList.add('active');
+            modal.querySelector('.modal-content').scrollTop = 0;
+        }
+
+        function closePathModal() {
+            document.getElementById('path-modal').classList.remove('active');
+        }
+
+        // ---- ③ 기사에서 기수 찾기 ----
+        // 앱은 서버 없이 동작해 뉴스 사이트를 직접 읽을 수 없으므로, 검색은 새 창으로
+        // 열고 사용자가 붙여넣은 기사 본문에서 "육사 51기" 같은 표현을 찾아준다.
+        var KISU_PATTERN = /(육군사관학교|해군사관학교|공군사관학교|육군3사관학교|3사관학교|육사|해사|공사|3사|삼사|학군사관|학군|ROTC|학사장교|학사)\s*(?:출신\s*)?\(?\s*(\d{1,3})\s*기/g;
+        var KISU_NORMALIZE = {
+            '육군사관학교': '육사', '육사': '육사', '해군사관학교': '해사', '해사': '해사', '공군사관학교': '공사', '공사': '공사',
+            '육군3사관학교': '3사', '3사관학교': '3사', '3사': '3사', '삼사': '3사',
+            '학군사관': '학군', '학군': '학군', 'ROTC': '학군', '학사장교': '학사', '학사': '학사'
+        };
+        var kisuCandidates = [];
+
+        function kisuSearchQuery(c) {
+            var academy = { '육군': '육사', '해군': '해사', '해병대': '해사', '공군': '공사' }[inferService(c)] || '기';
+            return '"' + c.name + '" ' + (c.rank || c.organization || '') + ' ' + academy;
+        }
+
+        function openKisuModal() {
+            var c = customers.find(function(x) { return x.id === currentEditId; });
+            if (!c) return;
+            document.getElementById('kisu-modal-title').textContent = '🔎 ' + pjCustomerLabel(c) + ' 기수 찾기';
+            document.getElementById('kisu-query').textContent = kisuSearchQuery(c);
+            document.getElementById('kisu-text').value = '';
+            document.getElementById('kisu-results').innerHTML = '';
+            document.getElementById('kisu-modal').classList.add('active');
+        }
+
+        function closeKisuModal() {
+            document.getElementById('kisu-modal').classList.remove('active');
+        }
+
+        function openKisuSearch(engine) {
+            var c = customers.find(function(x) { return x.id === currentEditId; });
+            if (!c) return;
+            var q = encodeURIComponent(kisuSearchQuery(c));
+            var url = engine === 'google'
+                ? 'https://news.google.com/search?q=' + q + '&hl=ko&gl=KR&ceid=KR:ko'
+                : 'https://search.naver.com/search.naver?where=news&query=' + q;
+            window.open(url, '_blank', 'noopener');
+        }
+
+        async function pasteKisuText() {
+            try {
+                var text = await navigator.clipboard.readText();
+                if (text) {
+                    document.getElementById('kisu-text').value = text;
+                    analyzeKisuText();
+                }
+            } catch (e) {
+                alert('클립보드를 읽을 수 없습니다. 아래 칸을 길게 눌러 직접 붙여넣어 주세요.');
+            }
+        }
+
+        function extractKisuCandidates(text, name) {
+            var namePos = [];
+            if (name) {
+                var i = text.indexOf(name);
+                while (i !== -1) { namePos.push(i); i = text.indexOf(name, i + 1); }
+            }
+            var found = {};
+            var m;
+            KISU_PATTERN.lastIndex = 0;
+            while ((m = KISU_PATTERN.exec(text)) !== null) {
+                var type = KISU_NORMALIZE[m[1]];
+                var num = String(Number(m[2]));
+                var key = type + ' ' + num;
+                // 이름과 기수 표현 사이의 글자 수 (앞뒤 어느 쪽이든)
+                var mEnd = m.index + m[0].length;
+                var distance = namePos.length ? Math.min.apply(null, namePos.map(function(p) {
+                    return m.index >= p + name.length ? m.index - (p + name.length) : Math.max(0, p - mEnd);
+                })) : null;
+                if (!found[key]) found[key] = { type: type, num: num, count: 0, distance: null, index: m.index, length: m[0].length };
+                var f = found[key];
+                f.count++;
+                if (distance !== null && (f.distance === null || distance < f.distance)) {
+                    f.distance = distance; f.index = m.index; f.length = m[0].length;
+                }
+            }
+            // 같은 기사에 다른 사람의 기수도 나오므로, 이름에 가장 가까운 표현만 '이름 바로 옆'으로 본다
+            var best = null;
+            Object.keys(found).forEach(function(k) {
+                var dd = found[k].distance;
+                if (dd !== null && (best === null || dd < best)) best = dd;
+            });
+            return Object.keys(found).map(function(k) {
+                var f = found[k];
+                var s = Math.max(0, f.index - 45), e = Math.min(text.length, f.index + f.length + 45);
+                var raw = text.slice(s, e).replace(/\s+/g, ' ');
+                var snippet = mmEscape(raw).replace(mmEscape(text.slice(f.index, f.index + f.length).replace(/\s+/g, ' ')), function(x) { return '<mark>' + x + '</mark>'; });
+                if (name) snippet = snippet.split(mmEscape(name)).join('<strong>' + mmEscape(name) + '</strong>');
+                f.snippet = (s > 0 ? '…' : '') + snippet + (e < text.length ? '…' : '');
+                f.confidence = f.distance !== null && f.distance <= 20 && f.distance === best ? 'high' : (f.distance !== null && f.distance <= 150 ? 'mid' : 'low');
+                return f;
+            }).sort(function(a, b) {
+                var rank = { high: 0, mid: 1, low: 2 };
+                return rank[a.confidence] - rank[b.confidence] || (a.distance === null ? 1e9 : a.distance) - (b.distance === null ? 1e9 : b.distance) || b.count - a.count;
+            });
+        }
+
+        function analyzeKisuText() {
+            var c = customers.find(function(x) { return x.id === currentEditId; });
+            var text = document.getElementById('kisu-text').value;
+            var box = document.getElementById('kisu-results');
+            if (!text.trim()) { box.innerHTML = ''; return; }
+            kisuCandidates = extractKisuCandidates(text, c ? c.name : '');
+            if (!kisuCandidates.length) {
+                box.innerHTML = '<div style="font-size: 13px; color: var(--text-secondary); padding: 8px 0;">기사에서 "육사 ○○기" 같은 표현을 찾지 못했습니다. 다른 기사를 붙여넣어 보세요.</div>';
+                return;
+            }
+            var nameFound = c && text.indexOf(c.name) !== -1;
+            var label = { high: '이름 바로 옆', mid: '같은 문단', low: '위치 불확실' };
+            box.innerHTML = (nameFound ? '' : '<div class="pj-issue warn" style="margin-bottom: 8px;">기사에 ' + mmEscape(c ? c.name : '') + ' 이름이 없어 누구의 기수인지 확실하지 않습니다.</div>') +
+                kisuCandidates.map(function(f, i) {
+                    return '<div class="kisu-cand ' + f.confidence + '"><div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">' +
+                        '<div><strong style="font-size: 16px;">' + f.type + ' ' + f.num + '기</strong> <span class="kisu-conf">' + label[f.confidence] + (f.count > 1 ? ' · ' + f.count + '회 언급' : '') + '</span></div>' +
+                        '<button type="button" class="btn btn-primary" style="padding: 6px 14px;" onclick="applyKisuCandidate(' + i + ')">적용</button></div>' +
+                        '<div class="kisu-snippet">' + f.snippet + '</div></div>';
+                }).join('');
+        }
+
+        function applyKisuCandidate(i) {
+            var f = kisuCandidates[i];
+            if (!f) return;
+            var typeSel = document.getElementById('edit-military-type');
+            if (!Array.prototype.some.call(typeSel.options, function(o) { return o.value === f.type; })) {
+                var opt = document.createElement('option');
+                opt.value = f.type; opt.textContent = f.type;
+                typeSel.appendChild(opt);
+            }
+            typeSel.value = f.type;
+            document.getElementById('edit-class-number').value = f.num;
+            closeKisuModal();
+            [typeSel, document.getElementById('edit-class-number')].forEach(function(el) {
+                el.classList.add('kisu-filled');
+                setTimeout(function() { el.classList.remove('kisu-filled'); }, 2500);
+            });
+            typeSel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            showSyncBanner('success', f.type + ' ' + f.num + '기를 입력했습니다. 저장을 눌러 반영하세요.');
+        }
+
+        function isMilitaryCustomer(c) {
+            return ['육군', '해군', '공군', '해병대'].includes(inferService(c)) ||
+                ['대장', '중장', '소장', '준장', '대령', '중령', '소령', '대위'].includes(c.rank);
         }
 
         // 데이터 내보내기
@@ -4532,6 +5064,7 @@
             html += '<div class="mm-info-actions">';
             if (n.kind === 'person') {
                 html += '<button class="btn btn-primary" data-mm-action="edit" data-mm-id="' + idAttr + '">상세보기/수정</button>';
+                html += '<button class="btn btn-secondary" data-mm-action="path" data-mm-id="' + idAttr + '">🧭 소개 경로</button>';
             } else if (n.type === 'project') {
                 html += '<button class="btn btn-primary" data-mm-action="project" data-mm-id="' + idAttr + '">사업 보기</button>';
             }
@@ -4556,6 +5089,9 @@
             } else if (action === 'edit') {
                 var node = mmGraph.g.nodes[id];
                 if (node && node.customer) editCustomer(node.customer.id);
+            } else if (action === 'path') {
+                var pnode = mmGraph.g.nodes[id];
+                if (pnode && pnode.customer) openPathModal(pnode.customer.id);
             } else if (action === 'project') {
                 var hub = mmGraph.g.nodes[id];
                 if (hub && hub.projectId) openProjectModal(hub.projectId);
@@ -4923,6 +5459,7 @@
             if (filter === 'all') return customers;
             if (filter === '중장') return customers.filter(function(c) { return c.rank === '중장'; });
             if (filter === '핵심고객') return customers.filter(function(c) { return keyCustomerIds.includes(c.id); });
+            if (filter === '기수미입력') return customers.filter(function(c) { return isMilitaryCustomer(c) && !(c.militaryType && c.classNumber); });
             if (filter === '미분류') return customers.filter(function(c) { var s = inferService(c); return !s || s === '기타'; });
 
             // ADD와 국과연은 같은 것으로 처리 (예전에 service가 '국과연'으로 저장된
@@ -5708,6 +6245,29 @@
                         type: 'stale-contact'
                     });
                 }
+            });
+
+            // 진행 중인 사업의 의사결정권자·PM과 오래 연락하지 않은 경우
+            var suggestedIds = {};
+            suggestions.forEach(function(sg) { if (sg.customerId) suggestedIds[sg.customerId] = true; });
+            projects.forEach(function(p) {
+                if (PJ_CLOSED.includes(p.status)) return;
+                var pDays = pjDaysUntil(p.nextDate);
+                (p.members || []).forEach(function(m) {
+                    if (!PJ_KEY_ROLES.includes(m.role) || suggestedIds[m.customerId]) return;
+                    var c = customers.find(function(x) { return x.id === m.customerId; });
+                    if (!c) return;
+                    var d = getDaysSinceLastContact(c);
+                    if (d !== null && d <= 60) return;
+                    suggestedIds[c.id] = true;
+                    suggestions.push({
+                        task: '[' + p.name + '] ' + pjCustomerLabel(c) + '(' + m.role + ') 연락하기',
+                        customerId: c.id,
+                        priority: pDays !== null && pDays >= 0 && pDays <= 30 ? 'urgent' : 'high',
+                        reason: d === null ? '사업 핵심 인물 · 연락 기록 없음' : '사업 핵심 인물 · ' + d + '일간 연락 없음',
+                        type: 'project-contact'
+                    });
+                });
             });
 
             // 7일 안에 다가오는 사업 일정
