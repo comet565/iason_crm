@@ -6392,7 +6392,7 @@
                     [c.school, c.major].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
                 if (profile) lines.push(profile);
                 if (opts.contact && (c.phone || c.email)) lines.push('연락처: ' + [c.phone, c.email].filter(Boolean).join(' · '));
-                // 관계도에 그려진 연결만 적는다 (PDF 그림과 일치하도록)
+                // 관계도에 그려진 연결만 적는다 (PDF 그림과 일치하도록). 같은 기관은 제외
                 var reasons = [];
                 var shownProjects = {};
                 mmGraph.edges.forEach(function(e) {
@@ -6400,6 +6400,9 @@
                     var other = g.nodes[e.a === n.id ? e.b : e.a];
                     if (other.kind === 'person') {
                         reasons.push('🔗 직접 관계: ' + numName(other.customer));
+                    } else if (other.type === 'org') {
+                        // 기관은 카드 윗줄(소속)에 이미 있고 관계도에서 허브로 보이므로 목록은 생략
+                        return;
                     } else {
                         var names = mmGraph.edges.filter(function(e2) { return (e2.a === other.id || e2.b === other.id); })
                             .map(function(e2) { return e2.a === other.id ? e2.b : e2.a; })
