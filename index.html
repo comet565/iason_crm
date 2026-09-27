@@ -3101,6 +3101,15 @@
             return sorted;
         }
 
+        // 수천 명을 한 번에 그리면 목록이 늦게 뜨므로 나눠서 보여준다
+        var CUSTOMER_PAGE = 200;
+        var customerListLimit = CUSTOMER_PAGE;
+
+        function showMoreCustomers() {
+            customerListLimit += CUSTOMER_PAGE * 2;
+            searchCustomers(true);
+        }
+
         function renderCustomerList(searchTerm) {
             const container = document.getElementById('customer-list');
 
@@ -3128,6 +3137,8 @@
                 return;
             }
 
+            var totalCount = displayCustomers.length;
+            displayCustomers = displayCustomers.slice(0, customerListLimit);
             container.innerHTML = displayCustomers.map(function(customer) {
                 // 핵심 고객 여부 확인
                 var isKey = keyCustomerIds.includes(customer.id);
@@ -3158,11 +3169,15 @@
                         '<button class="btn btn-secondary" onclick="removeFromKeyCustomers(' + customer.id + ')" style="padding: 8px 12px; font-size: 12px;">⭐ 해제</button>' :
                         '<button class="btn btn-secondary" onclick="addToKeyCustomers(' + customer.id + ')" style="background: #e53e3e; color: white; padding: 8px 12px; font-size: 12px;">⭐ 지정</button>') +
                     '</div></div>';
-            }).join('');
+            }).join('') +
+            (totalCount > displayCustomers.length
+                ? '<button class="btn btn-secondary" onclick="showMoreCustomers()" style="grid-column: 1 / -1; width: 100%; padding: 14px;">더 보기 (' + displayCustomers.length + ' / ' + totalCount + '명)</button>'
+                : '');
         }
         
         // 검색 기능
-        function searchCustomers() {
+        function searchCustomers(keepLimit) {
+            if (keepLimit !== true) customerListLimit = CUSTOMER_PAGE;
             var searchTerm = document.getElementById('customer-search').value;
             renderCustomerList(searchTerm);
         }
@@ -4284,46 +4299,80 @@
         var PATH_WEIGHT = { direct: 1, ongoing: 1.1, class: 1.2, project: 1.3, org: 1.5, school: 1.6 };
         var PATH_KNOWN_DAYS = 180;
 
-        function buildPersonLinks() {
+        // 그룹(동기·기관 등)을 사람 사이의 중간 지점으로 두고 탐색한다. 그룹 안의 모든
+        // 사람 쌍을 잇지 않으므로 큰 기관이 있어도 빠르다. 그룹을 거치는 비용은 이전과 같다.
+        function pathGraph() {
             var g = mmBuildGraph(customers);
             var links = {};
-            Object.keys(g.nodes).forEach(function(id) { if (g.nodes[id].kind === 'person') links[id] = []; });
+            Object.keys(g.nodes).forEach(function(id) { links[id] = []; });
             g.edges.forEach(function(e) {
-                if (e.type !== 'direct') return;
-                links[e.a].push({ to: e.b, label: '🔗 직접 등록한 관계', w: PATH_WEIGHT.direct });
-                links[e.b].push({ to: e.a, label: '🔗 직접 등록한 관계', w: PATH_WEIGHT.direct });
+                if (e.type === 'direct') {
+                    links[e.a].push({ to: e.b, w: PATH_WEIGHT.direct });
+                    links[e.b].push({ to: e.a, w: PATH_WEIGHT.direct });
+                }
             });
             Object.keys(g.nodes).forEach(function(id) {
                 var h = g.nodes[id];
                 if (h.kind !== 'hub') return;
                 var members = g.adj[id];
                 // 수백 명이 모인 큰 그룹일수록 '아는 사이'일 가능성이 낮으므로 약간 멀게 본다
-                var w = PATH_WEIGHT[h.type] + Math.min(0.5, members.length * 0.02);
-                var label = mmHubLabel(h) + ' ' + MM_HUB_STYLE[h.type].label;
-                members.forEach(function(a) {
-                    members.forEach(function(b) { if (a !== b) links[a].push({ to: b, label: label, w: w }); });
+                var half = (PATH_WEIGHT[h.type] + Math.min(0.5, members.length * 0.02)) / 2;
+                members.forEach(function(m) {
+                    links[m].push({ to: id, w: half });
+                    links[id].push({ to: m, w: half });
                 });
             });
-            return links;
+            return { g: g, links: links };
+        }
+
+        function hubPathLabel(h) {
+            return mmHubLabel(h) + ' ' + MM_HUB_STYLE[h.type].label;
         }
 
         function findIntroPaths(targetId, maxPaths) {
-            var links = buildPersonLinks();
+            var pg = pathGraph();
+            var g = pg.g, links = pg.links;
             var start = 'p:' + targetId;
             if (!links[start]) return { paths: [], knownCount: 0, neighbors: [] };
             var dist = {}, prev = {}, done = {};
             dist[start] = 0;
-            // 고객 수가 수백 명 규모라 단순 다익스트라로 충분하다
-            while (true) {
-                var u = null;
-                Object.keys(dist).forEach(function(k) { if (!done[k] && (u === null || dist[k] < dist[u])) u = k; });
-                if (u === null) break;
+            // 이진 힙 우선순위 큐
+            var heap = [[0, start]];
+            function push(item) {
+                heap.push(item);
+                var i = heap.length - 1;
+                while (i > 0) {
+                    var parent = (i - 1) >> 1;
+                    if (heap[parent][0] <= heap[i][0]) break;
+                    var tmp = heap[parent]; heap[parent] = heap[i]; heap[i] = tmp; i = parent;
+                }
+            }
+            function pop() {
+                var top = heap[0], last = heap.pop();
+                if (heap.length) {
+                    heap[0] = last;
+                    var i = 0;
+                    while (true) {
+                        var l = 2 * i + 1, r = l + 1, m = i;
+                        if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+                        if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+                        if (m === i) break;
+                        var t2 = heap[m]; heap[m] = heap[i]; heap[i] = t2; i = m;
+                    }
+                }
+                return top;
+            }
+            while (heap.length) {
+                var cur = pop();
+                var u = cur[1];
+                if (done[u]) continue;
                 done[u] = true;
                 links[u].forEach(function(l) {
                     var nd = dist[u] + l.w;
-                    if (dist[l.to] === undefined || nd < dist[l.to]) {
+                    if (dist[l.to] === undefined || nd < dist[l.to] - 1e-9) {
                         dist[l.to] = nd;
-                        prev[l.to] = { from: u, label: l.label };
+                        prev[l.to] = u;
+                        push([nd, l.to]);
                     }
                 });
             }
@@ -4338,21 +4387,34 @@
             });
             var paths = reachable.slice(0, maxPaths || 3).map(function(c) {
                 var steps = [];
-                var cur = 'p:' + c.id;
-                while (cur !== start) {
-                    var pv = prev[cur];
-                    steps.push({ id: Number(cur.slice(2)), via: pv.label });
-                    cur = pv.from;
+                var node = 'p:' + c.id;
+                while (node !== start) {
+                    var p1 = prev[node];
+                    if (g.nodes[p1].kind === 'hub') {
+                        steps.push({ id: Number(node.slice(2)), via: hubPathLabel(g.nodes[p1]) });
+                        node = prev[p1];
+                    } else {
+                        steps.push({ id: Number(node.slice(2)), via: '🔗 직접 등록한 관계' });
+                        node = p1;
+                    }
                 }
                 steps.push({ id: targetId, via: null });
                 return { cost: dist['p:' + c.id], steps: steps };
             });
+            // 목표 인물과 한 단계로 이어진 사람들
             var neighbors = [];
             var seen = {};
             links[start].forEach(function(l) {
-                if (seen[l.to]) return;
-                seen[l.to] = true;
-                neighbors.push({ id: Number(l.to.slice(2)), via: l.label });
+                var n1 = g.nodes[l.to];
+                if (n1.kind === 'person') {
+                    if (!seen[l.to]) { seen[l.to] = true; neighbors.push({ id: n1.customer.id, via: '🔗 직접 등록한 관계' }); }
+                } else {
+                    links[l.to].forEach(function(l2) {
+                        if (l2.to === start || seen[l2.to]) return;
+                        seen[l2.to] = true;
+                        neighbors.push({ id: g.nodes[l2.to].customer.id, via: hubPathLabel(n1) });
+                    });
+                }
             });
             return { paths: paths, knownCount: known.length, neighbors: neighbors };
         }
@@ -5382,7 +5444,9 @@
         // 사람(원)과 공통 소속(동기·학교·기관, 알약 모양 허브)을 선으로 이어 그린다.
         // 공통점이 있는 사람끼리 모두 직접 선을 그으면 인원이 늘수록 선이 폭증하므로,
         // 공통점은 허브 하나로 모아 "사람 - 허브 - 사람" 형태로 연결한다.
-        var mmState = { focus: null, depth: 1, showIsolated: false, selected: null, t: { x: 0, y: 0, k: 1 } };
+        var mmState = { focus: null, depth: 1, showIsolated: false, selected: null, drawAll: false, t: { x: 0, y: 0, k: 1 } };
+        // 전체 보기에서 이보다 많은 사람이 연결돼 있으면 '요약 보기'로 그린다
+        var MM_OVERVIEW_LIMIT = 300;
         var mmGraph = null;
 
         var MM_HUB_STYLE = {
@@ -5549,15 +5613,18 @@
         // aspect = 화면 세로/가로 비율. 휴대폰처럼 세로로 긴 화면이면 가로 방향을 더
         // 강하게 당겨서 그래프가 세로로 길게 퍼지도록 한다 (화면을 꽉 채워 글씨가 커지게).
         function mmLayout(nodeList, edges, pinnedId, aspect) {
-            var gx = 0.008 * Math.sqrt(aspect);
-            var gy = 0.008 / Math.sqrt(aspect);
             var n = nodeList.length;
+            // 사람이 많으면 중심으로 당기는 힘을 줄여 넓게 퍼지게 한다 (안 그러면 한곳에 뭉쳐 겹친다)
+            var gScale = Math.min(1, Math.sqrt(150 / Math.max(n, 1)));
+            var gx = 0.008 * Math.sqrt(aspect) * gScale;
+            var gy = 0.008 / Math.sqrt(aspect) * gScale;
             var idx = {};
             nodeList.forEach(function(nd, i) {
                 idx[nd.id] = i;
                 // 겹침 판정용 반지름: 사람은 원+이름표, 허브는 알약 가로 길이의 절반
                 nd.cr = nd.kind === 'hub' ? Math.max(32, mmHubWidth(nd) / 2 + 4) : 30;
-                var r = 40 + 240 * mmHash(nd.id + '#r');
+                // 사람이 많을수록 처음부터 넓게 흩어 놓아야 격자 계산이 효과를 본다
+                var r = (40 + 240 * mmHash(nd.id + '#r')) * Math.max(1, Math.sqrt(n / 150));
                 var a = 2 * Math.PI * mmHash(nd.id + '#a');
                 nd.x = r * Math.cos(a);
                 nd.y = r * Math.sin(a);
@@ -5568,17 +5635,36 @@
             var links = edges.map(function(e) {
                 return { s: nodeList[idx[e.a]], t: nodeList[idx[e.b]], len: e.type === 'direct' ? 130 : 95 };
             });
-            var iterations = n > 150 ? 180 : 300;
+            var iterations = n > 600 ? 120 : (n > 150 ? 180 : 300);
+            // 멀리 떨어진 쌍은 밀어내는 힘이 무시할 만큼 작으므로, 격자로 나눠 이웃 칸끼리만
+            // 비교한다. 모든 쌍을 비교하면 1,000명일 때 수십 초가 걸린다.
+            var maxCr = 30;
+            nodeList.forEach(function(nd) { if (nd.cr > maxCr) maxCr = nd.cr; });
+            var CELL = n > 300 ? Math.max(260, maxCr * 2 + 10) : 500;
+            var CUT2 = CELL * CELL;
             for (var it = 0; it < iterations; it++) {
                 var alpha = 1 - it / iterations;
+                var grid = {};
+                for (var gi = 0; gi < n; gi++) {
+                    var gnd = nodeList[gi];
+                    var key = Math.floor(gnd.x / CELL) + ',' + Math.floor(gnd.y / CELL);
+                    (grid[key] || (grid[key] = [])).push(gi);
+                }
                 for (var i = 0; i < n; i++) {
                     var p = nodeList[i];
-                    for (var j = i + 1; j < n; j++) {
+                    var cx = Math.floor(p.x / CELL), cy = Math.floor(p.y / CELL);
+                    for (var ox = -1; ox <= 1; ox++) {
+                      for (var oy = -1; oy <= 1; oy++) {
+                        var cell = grid[(cx + ox) + ',' + (cy + oy)];
+                        if (!cell) continue;
+                        for (var ni = 0; ni < cell.length; ni++) {
+                        var j = cell[ni];
+                        if (j <= i) continue;
                         var q = nodeList[j];
                         var dx = q.x - p.x;
                         var dy = q.y - p.y;
                         var d2 = dx * dx + dy * dy;
-                        if (d2 > 250000) continue;
+                        if (d2 > CUT2) continue;
                         if (d2 < 1) { dx = mmHash(p.id + q.id) - 0.5; dy = 0.5 - mmHash(q.id + p.id); d2 = 1; }
                         var d = Math.sqrt(d2);
                         var f = 4200 / d2;
@@ -5587,6 +5673,8 @@
                         if (d < minD) f += (minD - d) * 0.5;
                         p.vx -= dx / d * f; p.vy -= dy / d * f;
                         q.vx += dx / d * f; q.vy += dy / d * f;
+                        }
+                      }
                     }
                 }
                 links.forEach(function(l) {
@@ -5597,7 +5685,7 @@
                     l.s.vx += dx / d * f; l.s.vy += dy / d * f;
                     l.t.vx -= dx / d * f; l.t.vy -= dy / d * f;
                 });
-                var maxStep = 12 * alpha + 0.4;
+                var maxStep = (12 * alpha + 0.4) * Math.max(1, Math.sqrt(n / 150));
                 nodeList.forEach(function(nd) {
                     nd.vx -= nd.x * gx;
                     nd.vy -= nd.y * gy;
@@ -5664,6 +5752,7 @@
             if (mmState.selected && !g.nodes[mmState.selected]) mmState.selected = null;
 
             var keep;
+            var overview = false;
             if (mmState.focus) {
                 keep = mmSubgraph(g, mmState.focus, mmState.depth);
             } else {
@@ -5671,6 +5760,19 @@
                 Object.keys(g.nodes).forEach(function(id) {
                     if (mmState.showIsolated || g.adj[id].length > 0) keep[id] = true;
                 });
+                var connectedPersons = Object.keys(keep).filter(function(id) { return g.nodes[id].kind === 'person'; }).length;
+                if (connectedPersons > MM_OVERVIEW_LIMIT && !mmState.drawAll) {
+                    // 요약 보기: 핵심 고객 + 규모가 큰 그룹(기관·기수·학교·사업) 위주로만 그린다.
+                    // 수백~수천 명을 한 화면에 그리면 느리고 이름이 겹쳐 읽을 수 없기 때문.
+                    overview = true;
+                    keep = {};
+                    var hubs = Object.keys(g.nodes).filter(function(id) { return g.nodes[id].kind === 'hub'; });
+                    var projectHubs = hubs.filter(function(id) { return g.nodes[id].type === 'project' || g.nodes[id].type === 'ongoing'; });
+                    var groupHubs = hubs.filter(function(id) { return g.nodes[id].type !== 'project' && g.nodes[id].type !== 'ongoing'; })
+                        .sort(function(a, b) { return g.adj[b].length - g.adj[a].length; }).slice(0, 60);
+                    projectHubs.concat(groupHubs).forEach(function(id) { keep[id] = true; });
+                    keyCustomerIds.slice(0, 120).forEach(function(cid) { if (g.nodes['p:' + cid]) keep['p:' + cid] = true; });
+                }
             }
             var nodeList = Object.keys(keep).map(function(id) { return g.nodes[id]; });
             var edges = g.edges.filter(function(e) { return keep[e.a] && keep[e.b]; });
@@ -5683,13 +5785,17 @@
             mmGraph = { g: g, nodeList: nodeList, edges: edges, keep: keep };
 
             var status;
-            if (mmState.focus) {
+            if (overview) {
+                status = '고객이 많아(' + persons.length + '명) <strong>핵심 고객과 주요 그룹</strong>만 보여줍니다. 그룹을 눌러 \'이 그룹 중심으로\'를 선택하거나 이름으로 찾아보세요. ' +
+                    '<a href="#" onclick="mmSetDrawAll(true); return false;">모두 그리기(느림)</a>';
+            } else if (mmState.focus) {
                 var fn = g.nodes[mmState.focus];
                 var fname = fn.kind === 'hub' ? mmHubLabel(fn) : fn.customer.name;
                 status = '<strong>' + mmEscape(fname) + '</strong> 중심 · ' + mmState.depth + '단계 연결 · 고객 ' + shownPersons + '명';
             } else {
                 status = '고객 ' + shownPersons + '명 · 연결 ' + edges.length + '개' +
-                    (!mmState.showIsolated && isolatedCount > 0 ? ' · 연결 없는 고객 ' + isolatedCount + '명 숨김' : '');
+                    (!mmState.showIsolated && isolatedCount > 0 ? ' · 연결 없는 고객 ' + isolatedCount + '명 숨김' : '') +
+                    (mmState.drawAll ? ' · <a href="#" onclick="mmSetDrawAll(false); return false;">요약 보기로</a>' : '');
             }
 
             var html = '<div class="mm-toolbar">';
@@ -5976,12 +6082,13 @@
             var isFocus = mmState.focus === id;
             var html;
             if (n.kind === 'hub') {
-                var members = g.adj[id].map(function(m) { return g.nodes[m].customer; });
+                var members = g.adj[id].map(function(m) { return g.nodes[m].customer; })
+                    .sort(function(a, b) { return getRankWeight(a.rank) - getRankWeight(b.rank); });
                 html = '<div class="mm-info-title">' + mmEscape(mmHubLabel(n)) + ' ' + MM_HUB_STYLE[n.type].label + '</div>' +
                     '<div class="mm-info-sub">' + members.length + '명</div><ul>' +
-                    members.map(function(c) {
+                    members.slice(0, 20).map(function(c) {
                         return '<li>' + mmEscape((c.rank ? c.rank + ' ' : '') + c.name) + (c.position ? ' · ' + mmEscape(c.position) : '') + '</li>';
-                    }).join('') + '</ul>';
+                    }).join('') + (members.length > 20 ? '<li>… 외 ' + (members.length - 20) + '명 (이 그룹 중심으로 보기에서 확인)</li>' : '') + '</ul>';
             } else {
                 var c = n.customer;
                 var sub = [c.service, c.organization, c.position].filter(Boolean).map(mmEscape).join(' · ');
@@ -6522,6 +6629,11 @@
         function mmToggleIsolated(show) {
             mmState.showIsolated = !!show;
             changeVisualizationType();
+        }
+        function mmSetDrawAll(on) {
+            mmState.drawAll = !!on;
+            if (on) showSyncBanner('success', '모든 고객을 그리는 중입니다. 사람이 많으면 몇 초 걸릴 수 있습니다.');
+            setTimeout(changeVisualizationType, 30);
         }
 
         function mmSearch() {
@@ -7736,6 +7848,11 @@
                     if (payload.new && payload.new.data) {
                         applyRemoteData(payload.new.data);
                         showSyncBanner('success', '다른 기기에서 변경된 데이터를 반영했습니다');
+                    } else {
+                        // 데이터가 크면 실시간 알림에 본문이 빠진 채로 올 수 있다 → 직접 받아온다
+                        pullFromCloud(true).then(function() {
+                            showSyncBanner('success', '다른 기기에서 변경된 데이터를 반영했습니다');
+                        });
                     }
                 })
                 .subscribe();
