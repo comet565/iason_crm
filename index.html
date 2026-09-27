@@ -1035,6 +1035,43 @@
         .pj-controls input { flex: 1 1 200px; min-width: 0; }
         .pj-controls select { flex: 0 1 160px; }
         .pj-list { display: flex; flex-direction: column; gap: 12px; }
+        .pj-kind-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 4px;
+            background: var(--surface-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            margin-bottom: 14px;
+        }
+        .pj-kind-tabs button {
+            flex: 1;
+            border: none;
+            background: none;
+            padding: 8px 6px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .pj-kind-tabs button.active {
+            background: var(--surface);
+            color: var(--text-primary);
+            font-weight: 600;
+            box-shadow: var(--shadow-sm);
+        }
+        .pj-kind-tag {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 1px 7px;
+            border-radius: 5px;
+            margin-right: 6px;
+        }
+        .pj-kind-tag.new { color: #1f7a8c; background: rgba(31,122,140,0.1); }
+        .pj-kind-tag.ongoing { color: #9a4f96; background: rgba(154,79,150,0.1); }
         .pj-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -1331,18 +1368,24 @@
         <div id="projects-section" class="content-section">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 10px;">
-                    <h2 style="margin: 0;">사업 관리 <span id="project-count-label" style="font-size: 15px; font-weight: 400; color: var(--text-secondary);"></span></h2>
-                    <button class="btn btn-primary" onclick="openProjectModal()">+ 사업 추가</button>
+                    <h2 style="margin: 0;">사업·과제 관리 <span id="project-count-label" style="font-size: 15px; font-weight: 400; color: var(--text-secondary);"></span></h2>
+                    <button class="btn btn-primary" onclick="openProjectModal()">+ 사업·과제 추가</button>
+                </div>
+
+                <div class="pj-kind-tabs" id="project-kind-tabs">
+                    <button type="button" class="active" data-kind="all" onclick="setProjectKindFilter('all')">전체</button>
+                    <button type="button" data-kind="new" onclick="setProjectKindFilter('new')">📁 신규 사업</button>
+                    <button type="button" data-kind="ongoing" onclick="setProjectKindFilter('ongoing')">🔧 수행 과제</button>
                 </div>
 
                 <div class="pj-summary">
-                    <div class="summary-card" onclick="setProjectStatusFilter('active')">
-                        <div class="summary-number" id="pj-sum-active">0</div>
-                        <div class="summary-label">진행 중</div>
+                    <div class="summary-card" onclick="setProjectKindFilter('new'); setProjectStatusFilter('active')">
+                        <div class="summary-number" id="pj-sum-new">0</div>
+                        <div class="summary-label">신규 추진</div>
                     </div>
-                    <div class="summary-card" onclick="setProjectStatusFilter('proposal')">
-                        <div class="summary-number" id="pj-sum-proposal">0</div>
-                        <div class="summary-label">제안 단계</div>
+                    <div class="summary-card" onclick="setProjectKindFilter('ongoing'); setProjectStatusFilter('active')">
+                        <div class="summary-number" id="pj-sum-ongoing">0</div>
+                        <div class="summary-label">수행 중 과제</div>
                     </div>
                     <div class="summary-card" onclick="setProjectStatusFilter('soon')">
                         <div class="summary-number" id="pj-sum-soon">0</div>
@@ -1355,14 +1398,16 @@
                 </div>
 
                 <div class="pj-controls">
-                    <input type="text" id="project-search" placeholder="사업명, 기관, 관련 고객, 메모 검색" oninput="renderProjectList()">
+                    <input type="text" id="project-search" placeholder="사업·과제명, 기관, 관련 고객, 메모 검색" oninput="renderProjectList()">
                     <select id="project-status-filter" onchange="renderProjectList()">
                         <option value="active">진행 중 전체</option>
                         <option value="all">전체 (종료 포함)</option>
-                        <option value="proposal">제안 단계</option>
+                        <option value="proposal">제안 단계 (신규)</option>
+                        <option value="evaluation">평가 대응 (과제)</option>
                         <option value="soon">30일 내 일정</option>
                         <option value="risk">관계 점검 필요</option>
                         <option value="수주">수주</option>
+                        <option value="종료">종료된 과제</option>
                     </select>
                     <select id="project-sort" onchange="renderProjectList()">
                         <option value="next">다음 일정순</option>
@@ -1948,8 +1993,13 @@
                 <button class="close-btn" onclick="closeProjectModal()">&times;</button>
             </div>
             <form id="project-form" onsubmit="saveProject(event)">
+                <input type="hidden" id="pj-kind" value="new">
+                <div class="pj-kind-tabs" id="pj-kind-tabs" style="margin-bottom: 16px;">
+                    <button type="button" data-kind="new" onclick="setProjectFormKind('new')">📁 신규 사업 (수주 추진)</button>
+                    <button type="button" data-kind="ongoing" onclick="setProjectFormKind('ongoing')">🔧 수행 중 과제</button>
+                </div>
                 <div class="form-group">
-                    <label>사업명 *</label>
+                    <label id="pj-name-label">사업명 *</label>
                     <input type="text" id="pj-name" required placeholder="예: 차기 전술정보통신체계(TICN) 성능개량">
                 </div>
                 <div class="form-grid">
@@ -1976,29 +2026,29 @@
                         <label>사업 단계</label>
                         <select id="pj-stage">
                             <option value="">선택</option>
-                            <option value="소요제기">소요제기/결정</option>
-                            <option value="선행연구">선행연구</option>
-                            <option value="사업타당성조사">사업타당성조사</option>
-                            <option value="탐색개발">탐색개발</option>
-                            <option value="체계개발">체계개발</option>
-                            <option value="시험평가">시험평가</option>
-                            <option value="양산">양산</option>
-                            <option value="운영유지">운영유지/성능개량</option>
-                            <option value="과제수행">과제 수행</option>
+                            <optgroup label="무기체계 획득">
+                                <option value="소요제기">소요제기/결정</option>
+                                <option value="선행연구">선행연구</option>
+                                <option value="사업타당성조사">사업타당성조사</option>
+                                <option value="탐색개발">탐색개발</option>
+                                <option value="체계개발">체계개발</option>
+                                <option value="시험평가">시험평가</option>
+                                <option value="양산">양산</option>
+                                <option value="운영유지">운영유지/성능개량</option>
+                            </optgroup>
+                            <optgroup label="핵심기술 연구개발">
+                                <option value="핵심기술(응용)">핵심기술(응용)</option>
+                                <option value="핵심기술(시험)">핵심기술(시험)</option>
+                            </optgroup>
+                            <optgroup label="기타">
+                                <option value="과제수행">과제 수행</option>
+                            </optgroup>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>영업 상태</label>
-                        <select id="pj-status" onchange="renderProjectHealth()">
-                            <option value="관심">관심</option>
-                            <option value="정보수집">정보수집</option>
-                            <option value="제안준비">제안준비</option>
-                            <option value="제안제출">제안제출</option>
-                            <option value="협상">평가/협상</option>
-                            <option value="수주">수주</option>
-                            <option value="실주">실주</option>
-                            <option value="보류">보류</option>
-                        </select>
+                        <label id="pj-status-label">영업 상태</label>
+                        <select id="pj-status" onchange="onProjectStatusChange()"></select>
+                        <button type="button" id="pj-convert-btn" class="pj-chip" style="display: none; margin-top: 8px;" onclick="convertProjectToOngoing()">🔧 수주했으니 수행 과제로 전환</button>
                     </div>
                     <div class="form-group">
                         <label>예산 (억원)</label>
@@ -3494,7 +3544,7 @@
         // ---- 사업(프로젝트) 관리 ----
         // 사업마다 관련 고객과 역할을 연결해 "이 사업의 키맨은 누구인가 / 이 사람이
         // 관여한 사업은 무엇인가"를 양방향으로 볼 수 있게 한다.
-        var PJ_ROLES = ['의사결정권자', '사업담당(PM)', '실무자', '평가위원', '기술자문', '협력사', '경쟁사', '기타'];
+        var PJ_ROLES = ['의사결정권자', '사업담당(PM)', '실무자', '평가위원', '기술자문', '연구책임자', '협력사', '경쟁사', '기타'];
         var PJ_STATUS_STYLE = {
             '관심':     ['#6e6e73', 'rgba(110,110,115,0.1)'],
             '정보수집': ['#3a5ba9', 'rgba(58,91,169,0.1)'],
@@ -3503,11 +3553,69 @@
             '협상':     ['#7a5aa6', 'rgba(122,90,166,0.13)'],
             '수주':     ['#2f9e5b', 'rgba(47,158,91,0.13)'],
             '실주':     ['#d64545', 'rgba(214,69,69,0.1)'],
-            '보류':     ['#8a8f98', 'rgba(138,143,152,0.12)']
+            '보류':     ['#8a8f98', 'rgba(138,143,152,0.12)'],
+            '수행중':   ['#9a4f96', 'rgba(154,79,150,0.12)'],
+            '중간평가': ['#c2621a', 'rgba(196,106,27,0.13)'],
+            '최종평가': ['#a8761c', 'rgba(184,134,46,0.14)'],
+            '종료':     ['#8a8f98', 'rgba(138,143,152,0.12)']
         };
-        var PJ_STATUS_LABEL = { '협상': '평가/협상' };
-        var PJ_CLOSED = ['실주', '보류'];
+        var PJ_STATUS_LABEL = { '협상': '평가/협상', '수행중': '수행 중' };
+        // 신규 사업은 수주까지의 영업 단계, 수행 중 과제는 과제 진행 단계를 쓴다
+        var PJ_STATUSES = {
+            'new': ['관심', '정보수집', '제안준비', '제안제출', '협상', '수주', '실주', '보류'],
+            'ongoing': ['수행중', '중간평가', '최종평가', '종료']
+        };
+        var PJ_CLOSED = ['실주', '보류', '종료'];
         var PJ_PROPOSAL = ['제안준비', '제안제출', '협상'];
+        var PJ_EVALUATION = ['중간평가', '최종평가'];
+
+        function pjKind(p) { return p && p.kind === 'ongoing' ? 'ongoing' : 'new'; }
+
+        function setKindTabs(containerId, kind) {
+            document.querySelectorAll('#' + containerId + ' button').forEach(function(b) {
+                b.classList.toggle('active', b.getAttribute('data-kind') === kind);
+            });
+        }
+
+        var projectKindFilter = 'all';
+        function setProjectKindFilter(kind) {
+            projectKindFilter = kind;
+            setKindTabs('project-kind-tabs', kind);
+            renderProjectList();
+        }
+
+        function fillProjectStatusOptions(kind, value) {
+            var sel = document.getElementById('pj-status');
+            sel.innerHTML = PJ_STATUSES[kind].map(function(st) {
+                return '<option value="' + st + '">' + (PJ_STATUS_LABEL[st] || st) + '</option>';
+            }).join('');
+            sel.value = PJ_STATUSES[kind].includes(value) ? value : PJ_STATUSES[kind][0];
+        }
+
+        function setProjectFormKind(kind) {
+            var current = document.getElementById('pj-status').value;
+            document.getElementById('pj-kind').value = kind;
+            setKindTabs('pj-kind-tabs', kind);
+            fillProjectStatusOptions(kind, current);
+            var ongoing = kind === 'ongoing';
+            document.getElementById('pj-name-label').textContent = ongoing ? '과제명 *' : '사업명 *';
+            document.getElementById('pj-status-label').textContent = ongoing ? '과제 상태' : '영업 상태';
+            document.getElementById('pj-next-title').placeholder = ongoing ? '예: 중간평가, 분기 진도보고' : '예: 제안서 제출, 기술협의회';
+            onProjectStatusChange();
+        }
+
+        function onProjectStatusChange() {
+            var isWon = document.getElementById('pj-kind').value === 'new' && document.getElementById('pj-status').value === '수주';
+            document.getElementById('pj-convert-btn').style.display = isWon ? '' : 'none';
+            renderProjectHealth();
+        }
+
+        function convertProjectToOngoing() {
+            setProjectFormKind('ongoing');
+            document.getElementById('pj-status').value = '수행중';
+            onProjectStatusChange();
+            showSyncBanner('success', '수행 중 과제로 전환했습니다. 저장을 눌러 반영하세요.');
+        }
         var PJ_DEFAULT_AGENCIES = ['방위사업청', '국방부', '합동참모본부', '육군', '해군', '공군', '국방과학연구소(ADD)', '국방기술진흥연구소', '국방기술품질원', 'KIDA'];
 
         var currentProjectId = null;
@@ -3563,7 +3671,8 @@
             var days = pjDaysUntil(p.nextDate);
             if (filter === 'all') return true;
             if (filter === 'active') return !PJ_CLOSED.includes(p.status);
-            if (filter === 'proposal') return PJ_PROPOSAL.includes(p.status);
+            if (filter === 'proposal') return pjKind(p) === 'new' && PJ_PROPOSAL.includes(p.status);
+            if (filter === 'evaluation') return pjKind(p) === 'ongoing' && PJ_EVALUATION.includes(p.status);
             if (filter === 'soon') return !PJ_CLOSED.includes(p.status) && days !== null && days >= 0 && days <= 30;
             if (filter === 'risk') return !PJ_CLOSED.includes(p.status) && projectHealth(p).level === 'risk';
             return p.status === filter;
@@ -3599,12 +3708,14 @@
             var sort = document.getElementById('project-sort').value;
             var term = document.getElementById('project-search').value || '';
 
-            document.getElementById('pj-sum-active').textContent = projects.filter(function(p) { return projectMatchesFilter(p, 'active'); }).length;
-            document.getElementById('pj-sum-proposal').textContent = projects.filter(function(p) { return projectMatchesFilter(p, 'proposal'); }).length;
+            document.getElementById('pj-sum-new').textContent = projects.filter(function(p) { return pjKind(p) === 'new' && projectMatchesFilter(p, 'active'); }).length;
+            document.getElementById('pj-sum-ongoing').textContent = projects.filter(function(p) { return pjKind(p) === 'ongoing' && projectMatchesFilter(p, 'active'); }).length;
             document.getElementById('pj-sum-soon').textContent = projects.filter(function(p) { return projectMatchesFilter(p, 'soon'); }).length;
             document.getElementById('pj-sum-risk').textContent = projects.filter(function(p) { return projectMatchesFilter(p, 'risk'); }).length;
 
-            var list = projects.filter(function(p) { return projectMatchesFilter(p, filter) && projectMatchesSearch(p, term); });
+            var list = projects.filter(function(p) {
+                return (projectKindFilter === 'all' || pjKind(p) === projectKindFilter) && projectMatchesFilter(p, filter) && projectMatchesSearch(p, term);
+            });
             list.sort(function(a, b) {
                 if (sort === 'recent') return (b.createdAt || '').localeCompare(a.createdAt || '');
                 if (sort === 'budget') return (Number(b.budget) || 0) - (Number(a.budget) || 0);
@@ -3628,7 +3739,8 @@
             }
 
             container.innerHTML = list.map(function(p) {
-                var sub = [p.category, p.agency, p.stage].filter(Boolean).map(mmEscape).join(' · ');
+                var sub = '<span class="pj-kind-tag ' + pjKind(p) + '">' + (pjKind(p) === 'ongoing' ? '🔧 수행 과제' : '📁 신규 사업') + '</span>' +
+                    [p.category, p.agency, p.stage].filter(Boolean).map(mmEscape).join(' · ');
                 var meta = [];
                 var budget = pjFormatBudget(p.budget);
                 if (budget) meta.push('<span>💰 ' + budget + '</span>');
@@ -3673,7 +3785,10 @@
             document.getElementById('pj-category').value = p ? p.category || '' : '';
             document.getElementById('pj-agency').value = p ? p.agency || '' : '';
             document.getElementById('pj-stage').value = p ? p.stage || '' : '';
-            document.getElementById('pj-status').value = p ? p.status || '관심' : '관심';
+            // 종류 선택에 따라 상태 목록·라벨이 바뀌므로 먼저 맞춘다
+            document.getElementById('pj-status').innerHTML = '';
+            setProjectFormKind(pjKind(p));
+            fillProjectStatusOptions(pjKind(p), p ? p.status : '');
             document.getElementById('pj-budget').value = p && p.budget !== undefined ? p.budget : '';
             document.getElementById('pj-start').value = p ? p.startDate || '' : '';
             document.getElementById('pj-end').value = p ? p.endDate || '' : '';
@@ -3685,6 +3800,7 @@
             document.getElementById('pj-log-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('pj-log-note').value = '';
             document.getElementById('pj-delete-btn').style.display = p ? '' : 'none';
+            document.getElementById('project-modal-title').textContent = p ? (pjKind(p) === 'ongoing' ? '과제 정보' : '사업 정보') : '사업·과제 추가';
 
             pjDraft = {
                 members: p ? (p.members || []).map(function(m) { return { customerId: m.customerId, role: m.role || '' }; }) : [],
@@ -3826,6 +3942,7 @@
                 category: document.getElementById('pj-category').value,
                 agency: document.getElementById('pj-agency').value.trim(),
                 stage: document.getElementById('pj-stage').value,
+                kind: document.getElementById('pj-kind').value === 'ongoing' ? 'ongoing' : 'new',
                 status: document.getElementById('pj-status').value || '관심',
                 budget: budgetRaw === '' ? '' : Number(budgetRaw),
                 startDate: document.getElementById('pj-start').value,
@@ -3871,7 +3988,7 @@
                 var m = p.members.find(function(x) { return x.customerId === currentEditId; });
                 var days = pjDaysUntil(p.nextDate);
                 return '<div class="pj-linked-item" onclick="openProjectModal(' + p.id + ')">' +
-                    '<div style="min-width: 0;"><div style="font-weight: 600;">' + mmEscape(p.name) + '</div>' +
+                    '<div style="min-width: 0;"><div style="font-weight: 600;">' + (pjKind(p) === 'ongoing' ? '🔧 ' : '📁 ') + mmEscape(p.name) + '</div>' +
                     '<div style="font-size: 12px; color: var(--text-secondary);">' +
                     [m && m.role, p.agency, p.nextTitle ? (p.nextDate ? pjDdayLabel(days) + ' ' : '') + p.nextTitle : ''].filter(Boolean).map(mmEscape).join(' · ') +
                     '</div></div>' + pjStatusPill(p.status) + '</div>';
@@ -3879,8 +3996,8 @@
 
             var sel = document.getElementById('customer-project-select');
             var others = projects.filter(function(p) { return !mine.includes(p); });
-            sel.innerHTML = '<option value="">' + (others.length ? '기존 사업에 연결…' : '연결할 사업 없음') + '</option>' +
-                others.map(function(p) { return '<option value="' + p.id + '">' + mmEscape(p.name) + '</option>'; }).join('');
+            sel.innerHTML = '<option value="">' + (others.length ? '기존 사업·과제에 연결…' : '연결할 사업 없음') + '</option>' +
+                others.map(function(p) { return '<option value="' + p.id + '">' + (pjKind(p) === 'ongoing' ? '🔧 ' : '📁 ') + mmEscape(p.name) + '</option>'; }).join('');
             var roleSel = document.getElementById('customer-project-role');
             if (!roleSel.options.length) {
                 roleSel.innerHTML = '<option value="">역할</option>' + PJ_ROLES.map(function(r) { return '<option value="' + r + '">' + r + '</option>'; }).join('');
@@ -3916,12 +4033,23 @@
             }).filter(function(x) { return x.c; });
             function has(role) { return members.some(function(x) { return x.role === role; }); }
 
-            if (!has('의사결정권자')) { score -= 30; issues.push({ level: 'risk', text: '의사결정권자가 연결되지 않았습니다', role: '의사결정권자' }); }
-            if (!has('사업담당(PM)')) { score -= 20; issues.push({ level: 'risk', text: '사업담당(PM)이 연결되지 않았습니다', role: '사업담당(PM)' }); }
-            if (!has('실무자')) { score -= 10; issues.push({ level: 'warn', text: '실무자가 연결되지 않았습니다', role: '실무자' }); }
-            if (PJ_PROPOSAL.includes(p.status) && !has('평가위원')) {
-                score -= 10;
-                issues.push({ level: 'warn', text: '제안 단계인데 평가위원 정보가 없습니다', role: '평가위원' });
+            if (pjKind(p) === 'ongoing') {
+                // 수행 중 과제: 발주기관 담당(PM/감독관)과의 관계가 가장 중요하고, 평가 시기엔 평가위원
+                if (!has('사업담당(PM)')) { score -= 30; issues.push({ level: 'risk', text: '발주기관 사업담당(PM·감독관)이 연결되지 않았습니다', role: '사업담당(PM)' }); }
+                if (!has('의사결정권자')) { score -= 10; issues.push({ level: 'warn', text: '의사결정권자가 연결되지 않았습니다', role: '의사결정권자' }); }
+                if (!has('실무자')) { score -= 10; issues.push({ level: 'warn', text: '실무자가 연결되지 않았습니다', role: '실무자' }); }
+                if (PJ_EVALUATION.includes(p.status) && !has('평가위원')) {
+                    score -= 15;
+                    issues.push({ level: 'risk', text: (p.status || '평가') + ' 단계인데 평가위원 정보가 없습니다', role: '평가위원' });
+                }
+            } else {
+                if (!has('의사결정권자')) { score -= 30; issues.push({ level: 'risk', text: '의사결정권자가 연결되지 않았습니다', role: '의사결정권자' }); }
+                if (!has('사업담당(PM)')) { score -= 20; issues.push({ level: 'risk', text: '사업담당(PM)이 연결되지 않았습니다', role: '사업담당(PM)' }); }
+                if (!has('실무자')) { score -= 10; issues.push({ level: 'warn', text: '실무자가 연결되지 않았습니다', role: '실무자' }); }
+                if (PJ_PROPOSAL.includes(p.status) && !has('평가위원')) {
+                    score -= 10;
+                    issues.push({ level: 'warn', text: '제안 단계인데 평가위원 정보가 없습니다', role: '평가위원' });
+                }
             }
 
             var keyPenalty = 0, otherPenalty = 0;
@@ -3983,13 +4111,14 @@
             var box = document.getElementById('pj-health-box');
             if (!box) return;
             var draft = {
+                kind: document.getElementById('pj-kind').value,
                 status: document.getElementById('pj-status').value,
                 nextDate: document.getElementById('pj-next-date').value,
                 nextTitle: document.getElementById('pj-next-title').value,
                 members: pjDraft.members
             };
             if (PJ_CLOSED.includes(draft.status)) {
-                box.innerHTML = '<div style="font-size: 13px; color: var(--text-tertiary);">실주·보류된 사업은 진단하지 않습니다.</div>';
+                box.innerHTML = '<div style="font-size: 13px; color: var(--text-tertiary);">실주·보류된 사업과 종료된 과제는 진단하지 않습니다.</div>';
                 return;
             }
             var h = projectHealth(draft);
@@ -4000,15 +4129,18 @@
             if (!h.issues.length) {
                 html += '<div style="font-size: 13px; color: var(--success);">핵심 역할이 모두 연결되어 있고 최근 연락도 유지되고 있습니다 👍</div>';
             }
+            var candidatesShown = false;
             h.issues.forEach(function(issue) {
                 html += '<div class="pj-issue ' + issue.level + '"><div>' + (issue.level === 'risk' ? '⚠️ ' : '• ') + mmEscape(issue.text) + '</div>';
                 if (issue.customerId) {
                     html += '<div class="pj-issue-actions">' +
                         '<button type="button" class="pj-chip" onclick="closeProjectModal(); editCustomer(' + issue.customerId + ')">연락 기록 남기기</button>' +
                         '<button type="button" class="pj-chip" onclick="openPathModal(' + issue.customerId + ')">🧭 소개 경로</button></div>';
-                } else if (issue.role) {
+                } else if (issue.role && !candidatesShown) {
+                    // 후보는 가장 급한 빈 역할에 한 번만 보여준다 (추가한 뒤 역할은 목록에서 바꿀 수 있다)
                     var cands = pjRoleCandidates(agency, memberIds);
                     if (cands.length) {
+                        candidatesShown = true;
                         html += '<div class="pj-issue-actions"><span style="font-size: 12px; color: var(--text-secondary);">' + mmEscape(agency) + ' 소속 후보:</span>' +
                             cands.map(function(c) {
                                 return '<button type="button" class="pj-chip" onclick="addProjectMemberWithRole(' + c.id + ', \'' + issue.role + '\')">+ ' + mmEscape(pjCustomerLabel(c)) + '</button>';
@@ -4030,7 +4162,7 @@
         // ---- ② 소개 경로 찾기 ----
         // 최근 연락한 고객(=지금 부탁할 수 있는 사람)을 출발점으로, 목표 인물까지
         // 동기·사업·같은 기관·동문·직접 관계를 따라 가장 가까운 경로를 찾는다.
-        var PATH_WEIGHT = { direct: 1, class: 1.2, project: 1.3, org: 1.5, school: 1.6 };
+        var PATH_WEIGHT = { direct: 1, ongoing: 1.1, class: 1.2, project: 1.3, org: 1.5, school: 1.6 };
         var PATH_KNOWN_DAYS = 180;
 
         function buildPersonLinks() {
@@ -4463,8 +4595,17 @@
             class:  { color: '#3a5ba9', icon: '🎖', label: '동기' },
             school: { color: '#2f8f6f', icon: '🎓', label: '동문' },
             org:    { color: '#b8862e', icon: '🏢', label: '같은 기관' },
-            project: { color: '#1f7a8c', icon: '📁', label: '사업 참여' }
+            project: { color: '#1f7a8c', icon: '📁', label: '신규 사업' },
+            ongoing: { color: '#9a4f96', icon: '🔧', label: '과제 수행' }
         };
+
+        // 관계선 모양: 직접 관계는 굵은 파랑, 수행 과제는 보라 실선, 신규 사업은 청록 점선
+        function mmEdgeStyle(e) {
+            if (e.type === 'direct') return { color: MM_DIRECT_COLOR, width: 2.5, dash: null };
+            if (e.type === 'ongoing') return { color: MM_HUB_STYLE.ongoing.color, width: 2, dash: null };
+            if (e.type === 'project') return { color: MM_HUB_STYLE.project.color, width: 1.6, dash: [5, 4] };
+            return { color: '#c3c8cf', width: 1.2, dash: null };
+        }
         var MM_DIRECT_COLOR = '#3a5ba9';
         var MM_GENERAL_RANKS = ['대장', '중장', '소장', '준장'];
 
@@ -4514,19 +4655,22 @@
                 if (c.school && c.school.trim()) addToGroup('school', c.school.trim(), c);
                 if (c.organization && c.organization.trim().length > 1) addToGroup('org', c.organization.trim(), c);
             });
-            // 같은 사업에 연결된 고객들 (실주·보류된 사업은 제외)
+            // 사업·과제에 연결된 고객들. 실주·보류된 신규 사업은 빼고, 수행 과제는 종료됐어도
+            // '함께 과제를 했던 사이'라는 관계가 남으므로 포함한다. 한 명만 연결돼도 표시한다.
             var inGraph = {};
             persons.forEach(function(c) { inGraph[c.id] = true; });
             projects.forEach(function(p) {
-                if (PJ_CLOSED.includes(p.status)) return;
-                var gid = 'h:project:' + p.id;
+                if (p.status === '실주' || p.status === '보류') return;
+                var type = pjKind(p) === 'ongoing' ? 'ongoing' : 'project';
+                var gid = 'h:' + type + ':' + p.id;
                 var label = p.name.length > 16 ? p.name.slice(0, 15) + '…' : p.name;
-                groups[gid] = { id: gid, kind: 'hub', type: 'project', label: label, projectId: p.id,
+                groups[gid] = { id: gid, kind: 'hub', type: type, label: label, projectId: p.id,
                     members: (p.members || []).filter(function(m) { return inGraph[m.customerId]; }).map(function(m) { return 'p:' + m.customerId; }) };
             });
             Object.keys(groups).forEach(function(gid) {
                 var grp = groups[gid];
-                if (grp.members.length < 2) return;
+                var minMembers = grp.type === 'project' || grp.type === 'ongoing' ? 1 : 2;
+                if (grp.members.length < minMembers) return;
                 nodes[gid] = grp;
                 grp.members.forEach(function(pid) { edges.push({ a: pid, b: gid, type: grp.type }); });
             });
@@ -4784,9 +4928,9 @@
             edges.forEach(function(e, i) {
                 var a = g.nodes[e.a];
                 var b = g.nodes[e.b];
-                var direct = e.type === 'direct';
+                var st = mmEdgeStyle(e);
                 html += '<line data-edge="' + i + '" x1="' + a.x.toFixed(1) + '" y1="' + a.y.toFixed(1) + '" x2="' + b.x.toFixed(1) + '" y2="' + b.y.toFixed(1) + '"' +
-                    ' stroke="' + (direct ? MM_DIRECT_COLOR : '#c3c8cf') + '" stroke-width="' + (direct ? 2.5 : 1.2) + '"/>';
+                    ' stroke="' + st.color + '" stroke-width="' + st.width + '"' + (st.dash ? ' stroke-dasharray="' + st.dash.join(' ') + '"' : '') + '/>';
             });
             nodeList.filter(function(n) { return n.kind === 'hub'; }).forEach(function(n) { html += mmNodeSvg(n); });
             nodeList.filter(function(n) { return n.kind === 'person'; }).forEach(function(n) { html += mmNodeSvg(n); });
@@ -4806,7 +4950,9 @@
                 '<span><i style="background: #c0567a;"></i>대학교</span>' +
                 '<span><i style="background: #fff; box-shadow: 0 0 0 2px #d64545;"></i>핵심 고객</span>' +
                 '<span><i class="line" style="background: ' + MM_DIRECT_COLOR + ';"></i>직접 등록한 관계</span>' +
-                '<span><i class="line" style="background: #c3c8cf;"></i>동기·동문·같은 기관·사업</span>' +
+                '<span><i class="line" style="background: ' + MM_HUB_STYLE.ongoing.color + ';"></i>수행 과제</span>' +
+                '<span><i class="line" style="background: repeating-linear-gradient(90deg, ' + MM_HUB_STYLE.project.color + ' 0 5px, transparent 5px 9px);"></i>신규 사업</span>' +
+                '<span><i class="line" style="background: #c3c8cf;"></i>동기·동문·같은 기관</span>' +
                 '</div>';
             container.innerHTML = html;
 
@@ -5065,7 +5211,7 @@
             if (n.kind === 'person') {
                 html += '<button class="btn btn-primary" data-mm-action="edit" data-mm-id="' + idAttr + '">상세보기/수정</button>';
                 html += '<button class="btn btn-secondary" data-mm-action="path" data-mm-id="' + idAttr + '">🧭 소개 경로</button>';
-            } else if (n.type === 'project') {
+            } else if (n.type === 'project' || n.type === 'ongoing') {
                 html += '<button class="btn btn-primary" data-mm-action="project" data-mm-id="' + idAttr + '">사업 보기</button>';
             }
             if (!isFocus) {
@@ -5172,7 +5318,7 @@
             ctx.lineTo(W - pad, pad + 122);
             ctx.stroke();
 
-            var legendH = 70;
+            var legendH = 114;
             var area = { x: pad, y: pad + 150, w: W - 2 * pad, h: H - (pad + 150) - pad - legendH };
             var k = Math.min(area.w / gw, area.h / gh, 4);
             var ox = area.x + (area.w - gw * k) / 2 - minX * k;
@@ -5184,14 +5330,16 @@
             mmGraph.edges.forEach(function(e) {
                 var a = g.nodes[e.a];
                 var b = g.nodes[e.b];
-                var direct = e.type === 'direct';
-                ctx.strokeStyle = direct ? MM_DIRECT_COLOR : '#c3c8cf';
-                ctx.lineWidth = (direct ? 2.5 : 1.2) * k;
+                var st = mmEdgeStyle(e);
+                ctx.strokeStyle = st.color;
+                ctx.lineWidth = st.width * k;
+                ctx.setLineDash(st.dash ? st.dash.map(function(d) { return d * k; }) : []);
                 ctx.beginPath();
                 ctx.moveTo(px(a), py(a));
                 ctx.lineTo(px(b), py(b));
                 ctx.stroke();
             });
+            ctx.setLineDash([]);
 
             ctx.textAlign = 'center';
             nodes.filter(function(n) { return n.kind === 'hub'; }).forEach(function(n) {
@@ -5263,20 +5411,30 @@
                 { kind: 'dot', color: '#c0567a', label: '대학교' },
                 { kind: 'ring', color: '#d64545', label: '핵심 고객' },
                 { kind: 'line', color: MM_DIRECT_COLOR, label: '직접 등록한 관계' },
-                { kind: 'line', color: '#c3c8cf', label: '동기·동문·같은 기관·사업' }
+                { kind: 'line', color: MM_HUB_STYLE.ongoing.color, label: '수행 과제' },
+                { kind: 'line', color: MM_HUB_STYLE.project.color, label: '신규 사업', dash: true },
+                { kind: 'line', color: '#c3c8cf', label: '동기·동문·같은 기관' }
             ];
             ctx.textAlign = 'left';
             ctx.font = '400 28px ' + MM_PDF_FONT;
+            // 항목이 많아 한 줄에 다 안 들어가면 두 줄로 나눈다
             var lx = pad;
-            var ly = H - pad - 20;
+            var ly = H - pad - 64;
             legend.forEach(function(item) {
+                var itemW = (item.kind === 'line' ? 42 : 30) + ctx.measureText(item.label).width;
+                if (lx > pad && lx + itemW > W - pad) {
+                    lx = pad;
+                    ly += 44;
+                }
                 if (item.kind === 'line') {
                     ctx.strokeStyle = item.color;
                     ctx.lineWidth = 5;
                     ctx.beginPath();
+                    ctx.setLineDash(item.dash ? [7, 5] : []);
                     ctx.moveTo(lx, ly - 8);
                     ctx.lineTo(lx + 30, ly - 8);
                     ctx.stroke();
+                    ctx.setLineDash([]);
                     lx += 42;
                 } else {
                     ctx.beginPath();
