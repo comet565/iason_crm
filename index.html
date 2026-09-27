@@ -1312,6 +1312,17 @@
             color: var(--text-primary);
         }
         .org-pick small { color: var(--text-secondary); }
+        .mm-pdf-opt {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .mm-pdf-opt input { margin-top: 3px; }
+        .mm-pdf-opt small { color: var(--text-secondary); font-size: 12px; }
         .org-pick:hover { background: var(--accent-soft); }
     </style>
 </head>
@@ -2210,6 +2221,27 @@
                 <textarea id="kisu-text" rows="5" placeholder="예: … 육사 51기인 홍길동 준장은 …" oninput="analyzeKisuText()" style="width: 100%; box-sizing: border-box;"></textarea>
                 <div style="font-weight: 600; margin: 16px 0 6px;">3. 찾은 기수</div>
                 <div id="kisu-results"><div style="font-size: 13px; color: var(--text-tertiary);">기사를 붙여넣으면 여기에 표시됩니다.</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 관계도 PDF 저장 옵션 -->
+    <div id="mm-pdf-modal" class="modal">
+        <div class="modal-content" style="max-width: 460px;">
+            <div class="modal-header">
+                <h2>관계도 PDF 저장</h2>
+                <button class="close-btn" onclick="closeMmPdfModal()">&times;</button>
+            </div>
+            <div style="padding: 4px 0 10px;">
+                <label class="mm-pdf-opt"><input type="checkbox" id="mm-pdf-people" checked>
+                    <span><strong>인물 정보 쪽 포함</strong> (<span id="mm-pdf-count">0</span>명)<br>
+                    <small>관계도의 사람을 누르면 그 사람의 소속·기수·연결·관여 사업 카드로 이동합니다</small></span></label>
+                <label class="mm-pdf-opt"><input type="checkbox" id="mm-pdf-contact">
+                    <span><strong>연락처 포함</strong><br><small>전화번호·이메일</small></span></label>
+                <label class="mm-pdf-opt"><input type="checkbox" id="mm-pdf-notes">
+                    <span><strong>연락 이력·가족·메모 포함</strong><br><small>마지막 연락일, 가족, 비고 — 내부용으로만 권장</small></span></label>
+                <div style="font-size: 12px; color: var(--text-secondary); margin: 10px 0 16px;">다른 사람에게 공유할 때는 연락처와 메모를 빼는 것을 권장합니다.</div>
+                <button type="button" class="btn btn-primary" style="width: 100%;" onclick="mmExportPdfRun()">PDF 만들기</button>
             </div>
         </div>
     </div>
@@ -5013,7 +5045,9 @@
             return lines;
         }
 
-        function renderBriefingPages(b) {
+        function renderBriefingPages(b, opts) {
+            opts = opts || {};
+            var anchors = {};
             var W = 1240, H = 1754, M = 90, FOOT = 60;
             var font = MM_PDF_FONT;
             var pages = [];
@@ -5031,7 +5065,7 @@
                 if (pages.length > 1) {
                     ctx.font = '400 20px ' + font;
                     ctx.fillStyle = '#a1a1a6';
-                    ctx.fillText(b.title + ' 브리핑 (계속)', M, y);
+                    ctx.fillText(opts.continueLabel || b.title + ' 브리핑 (계속)', M, y);
                     y += 40;
                 }
             }
@@ -5100,6 +5134,7 @@
                         var boxH = 30 + nLines * 30 + 10;
                         if (boxH < H - 2 * M - FOOT) ensure(boxH);
                         var top = y;
+                        if (card.anchor) anchors[card.anchor] = { page: pages.length - 1, y: top };
                         y += 16;
                         text(card.title, 24, 700, '#1d1d1f', M + 20, CW - 40, 34);
                         text(card.meta, 19, 400, '#6e6e73', M + 20, CW - 40, 28);
@@ -5148,16 +5183,30 @@
                     text(bl.text, 20, 400, '#a1a1a6', M, CW, 30);
                 }
             });
-            // 쪽 번호와 취급 주의 문구
+            // 쪽 번호와 취급 주의 문구 (+ 선택: 앞쪽으로 돌아가는 링크 자리)
+            var pageOffset = opts.pageOffset || 0;
+            var totalPages = pages.length + pageOffset;
+            var backLinks = [];
             pages.forEach(function(cv, i) {
                 var c2 = cv.getContext('2d');
                 c2.font = '400 18px ' + font;
                 c2.fillStyle = '#a1a1a6';
                 c2.textAlign = 'left';
-                c2.fillText('Tactical CRM · 대외비 · 개인정보 포함', M, H - M + 10);
+                c2.fillText(opts.footer || 'Tactical CRM · 대외비 · 개인정보 포함', M, H - M + 10);
                 c2.textAlign = 'right';
-                c2.fillText((i + 1) + ' / ' + pages.length, W - M, H - M + 10);
+                c2.fillText((i + 1 + pageOffset) + ' / ' + totalPages, W - M, H - M + 10);
+                if (opts.backLabel) {
+                    c2.textAlign = 'center';
+                    c2.font = '600 20px ' + font;
+                    c2.fillStyle = '#3a5ba9';
+                    c2.fillText(opts.backLabel, W / 2, H - M + 10);
+                    var bw = c2.measureText(opts.backLabel).width;
+                    backLinks.push({ page: i, x1: W / 2 - bw / 2 - 16, y1: H - M - 20, x2: W / 2 + bw / 2 + 16, y2: H - M + 22 });
+                }
+                c2.textAlign = 'left';
             });
+            pages.anchors = anchors;
+            pages.backLinks = backLinks;
             return pages;
         }
 
@@ -6034,7 +6083,8 @@
             ctx.closePath();
         }
 
-        function mmDrawExportCanvas(info) {
+        function mmDrawExportCanvas(info, numbering) {
+            var nodeRects = [];
             var g = mmGraph.g;
             var nodes = mmGraph.nodeList;
             var xs = nodes.map(function(n) { return n.x; });
@@ -6146,6 +6196,13 @@
                 ctx.lineWidth = 2 * k;
                 ctx.stroke();
 
+                // 인물 정보 쪽과 맞춰볼 수 있게 원 안에 번호를 넣는다
+                if (numbering && numbering[c.id]) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '700 ' + Math.max(9 * k, r * 0.95) + 'px ' + MM_PDF_FONT;
+                    ctx.fillText(String(numbering[c.id]), x, y + r * 0.34);
+                }
+
                 ctx.fillStyle = '#1d1d1f';
                 ctx.font = '600 ' + (12 * k) + 'px ' + MM_PDF_FONT;
                 haloText((isKey ? '⭐ ' : '') + (c.name || ''), x, y + r + 15 * k);
@@ -6154,6 +6211,8 @@
                     ctx.font = '400 ' + (10 * k) + 'px ' + MM_PDF_FONT;
                     haloText(c.rank, x, y + r + 28 * k);
                 }
+                var labelW = Math.max(r * 2, ctx.measureText((c.name || '') + '    ').width + 12 * k);
+                nodeRects.push({ customerId: c.id, x1: x - labelW / 2, y1: y - r - 4, x2: x + labelW / 2, y2: y + r + (c.rank ? 32 : 20) * k });
             });
 
             // 범례
@@ -6208,7 +6267,7 @@
                 lx += ctx.measureText(item.label).width + 26;
             });
 
-            return { canvas: canvas, landscape: landscape };
+            return { canvas: canvas, landscape: landscape, nodeRects: nodeRects };
         }
 
         // JPEG 이미지 한 장을 A4 한 페이지에 꽉 채운 PDF 바이트를 만든다
@@ -6238,6 +6297,27 @@
 
             add('%PDF-1.4\n%ÿÿÿÿ\n');
             obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
+            // 링크 주석 번호는 모든 쪽 뒤에 이어서 매긴다
+            var nextAnnot = 3 + pages.length * 3;
+            var annots = [];
+            function pageSize(pg) {
+                return pg.landscape ? { w: 841.89, h: 595.28 } : { w: 595.28, h: 841.89 };
+            }
+            pages.forEach(function(pg, i) {
+                pg.annotNums = [];
+                (pg.links || []).forEach(function(link) {
+                    var target = pages[link.target];
+                    if (!target) return;
+                    var sz = pageSize(pg), s = sz.w / pg.w;
+                    var tsz = pageSize(target), ts = tsz.w / target.w;
+                    var top = Math.min(tsz.h, tsz.h - (link.ty || 0) * ts + 12);
+                    var num = nextAnnot++;
+                    pg.annotNums.push(num);
+                    annots.push({ num: num, body: '<< /Type /Annot /Subtype /Link /Border [0 0 0] /Rect [' +
+                        (link.x1 * s).toFixed(1) + ' ' + (sz.h - link.y2 * s).toFixed(1) + ' ' + (link.x2 * s).toFixed(1) + ' ' + (sz.h - link.y1 * s).toFixed(1) +
+                        '] /Dest [' + (3 + link.target * 3) + ' 0 R /XYZ 0 ' + top.toFixed(1) + ' null] >>' });
+                });
+            });
             var kids = pages.map(function(pg, i) { return (3 + i * 3) + ' 0 R'; }).join(' ');
             obj(2, '<< /Type /Pages /Kids [' + kids + '] /Count ' + pages.length + ' >>');
             pages.forEach(function(pg, i) {
@@ -6248,7 +6328,8 @@
                 var img = new Uint8Array(bin.length);
                 for (var b = 0; b < bin.length; b++) img[b] = bin.charCodeAt(b);
                 obj(pageNum, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pageW.toFixed(2) + ' ' + pageH.toFixed(2) + ']' +
-                    ' /Resources << /XObject << /Im0 ' + imgNum + ' 0 R >> >> /Contents ' + contentNum + ' 0 R >>');
+                    ' /Resources << /XObject << /Im0 ' + imgNum + ' 0 R >> >> /Contents ' + contentNum + ' 0 R' +
+                    (pg.annotNums.length ? ' /Annots [' + pg.annotNums.map(function(n) { return n + ' 0 R'; }).join(' ') + ']' : '') + ' >>');
                 offsets[imgNum] = length;
                 add(imgNum + ' 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + pg.w + ' /Height ' + pg.h +
                     ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + img.length + ' >>\nstream\n');
@@ -6258,7 +6339,9 @@
                 obj(contentNum, '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream');
             });
 
-            var total = 3 + pages.length * 3;
+            annots.forEach(function(a) { obj(a.num, a.body); });
+
+            var total = nextAnnot;
             var xrefAt = length;
             var xref = 'xref\n0 ' + total + '\n0000000000 65535 f \n';
             for (var n = 1; n < total; n++) xref += String(offsets[n]).padStart(10, '0') + ' 00000 n \n';
@@ -6286,10 +6369,122 @@
                 alert('저장할 관계도가 없습니다.');
                 return;
             }
+            var count = mmGraph.nodeList.filter(function(n) { return n.kind === 'person'; }).length;
+            document.getElementById('mm-pdf-count').textContent = count;
+            document.getElementById('mm-pdf-modal').classList.add('active');
+        }
+
+        function closeMmPdfModal() {
+            document.getElementById('mm-pdf-modal').classList.remove('active');
+        }
+
+        // 관계도에 보이는 사람마다 한 칸씩: 소속·기수·학력, 관계도 안의 연결, 관여 사업
+        function mmPersonCards(numbering, opts) {
+            var g = mmGraph.g;
+            var persons = mmGraph.nodeList.filter(function(n) { return n.kind === 'person'; });
+            persons.sort(function(a, b) { return numbering[a.customer.id] - numbering[b.customer.id]; });
+            function numName(c) { return pjCustomerLabel(c) + '(' + numbering[c.id] + ')'; }
+            return persons.map(function(n) {
+                var c = n.customer;
+                var lines = [];
+                var profile = [c.rank,
+                    (c.militaryType || c.classNumber) ? [c.militaryType, c.classNumber ? String(c.classNumber).replace(/기$/, '') + '기' : ''].filter(Boolean).join(' ') : '',
+                    [c.school, c.major].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+                if (profile) lines.push(profile);
+                if (opts.contact && (c.phone || c.email)) lines.push('연락처: ' + [c.phone, c.email].filter(Boolean).join(' · '));
+                // 관계도에 그려진 연결만 적는다 (PDF 그림과 일치하도록)
+                var reasons = [];
+                var shownProjects = {};
+                mmGraph.edges.forEach(function(e) {
+                    if (e.a !== n.id && e.b !== n.id) return;
+                    var other = g.nodes[e.a === n.id ? e.b : e.a];
+                    if (other.kind === 'person') {
+                        reasons.push('🔗 직접 관계: ' + numName(other.customer));
+                    } else {
+                        var names = mmGraph.edges.filter(function(e2) { return (e2.a === other.id || e2.b === other.id); })
+                            .map(function(e2) { return e2.a === other.id ? e2.b : e2.a; })
+                            .filter(function(pid) { return pid !== n.id && g.nodes[pid] && g.nodes[pid].kind === 'person'; })
+                            .map(function(pid) { return numName(g.nodes[pid].customer); });
+                        var detail = '';
+                        if (other.projectId) {
+                            // 사업·과제 허브는 이 사람의 역할과 상태를 함께 적고, 아래 사업 목록에서는 뺀다
+                            shownProjects[other.projectId] = true;
+                            var hp = projects.find(function(x) { return x.id === other.projectId; });
+                            var hm = hp && hp.members.find(function(x) { return x.customerId === c.id; });
+                            detail = ' (' + [hm && hm.role, hp && (PJ_STATUS_LABEL[hp.status] || hp.status)].filter(Boolean).join(', ') + ')';
+                        }
+                        reasons.push(mmHubLabel(other) + ' ' + MM_HUB_STYLE[other.type].label + detail + (names.length ? ': ' + names.join(', ') : ''));
+                    }
+                });
+                reasons.forEach(function(r) { lines.push(r); });
+                getProjectsForCustomer(c.id).forEach(function(p) {
+                    if (shownProjects[p.id]) return;
+                    var m = p.members.find(function(x) { return x.customerId === c.id; });
+                    lines.push((pjKind(p) === 'ongoing' ? '🔧 ' : '📁 ') + p.name + ' — ' + [m && m.role, PJ_STATUS_LABEL[p.status] || p.status].filter(Boolean).join(', '));
+                });
+                if (opts.notes) {
+                    var d = getDaysSinceLastContact(c);
+                    lines.push('마지막 연락: ' + brDaysAgoLabel(d));
+                    if (c.family) lines.push('가족: ' + c.family);
+                    if (c.notes && c.notes !== 'VCF 파일에서 가져옴') lines.push('메모: ' + c.notes);
+                }
+                return {
+                    anchor: n.id,
+                    title: numbering[c.id] + '. ' + (keyCustomerIds.includes(c.id) ? '⭐ ' : '') + pjCustomerLabel(c),
+                    meta: [c.organization, c.department, c.position].filter(Boolean).join(' · ') || (inferService(c) || '소속 미입력'),
+                    lines: lines.length ? lines : ['관계도 안의 연결 정보가 없습니다.']
+                };
+            });
+        }
+
+        function mmExportPdfRun() {
+            var withPeople = document.getElementById('mm-pdf-people').checked;
+            var opts = {
+                contact: document.getElementById('mm-pdf-contact').checked,
+                notes: document.getElementById('mm-pdf-notes').checked
+            };
+            closeMmPdfModal();
+
             var info = mmExportTitleLines();
-            var drawn = mmDrawExportCanvas(info);
-            var jpeg = drawn.canvas.toDataURL('image/jpeg', 0.92);
-            var pdf = mmBuildImagePdf(jpeg, drawn.canvas.width, drawn.canvas.height, drawn.landscape);
+            var numbering = null;
+            if (withPeople) {
+                // 직급이 높은 사람부터 번호를 매긴다
+                numbering = {};
+                mmGraph.nodeList.filter(function(n) { return n.kind === 'person'; })
+                    .map(function(n) { return n.customer; })
+                    .sort(function(a, b) { return getRankWeight(a.rank) - getRankWeight(b.rank) || (a.name || '').localeCompare(b.name || '', 'ko'); })
+                    .forEach(function(c, i) { numbering[c.id] = i + 1; });
+                info.subtitle += ' · 사람을 누르면 인물 정보로 이동';
+            }
+            var drawn = mmDrawExportCanvas(info, numbering);
+            var pages = [{ dataUrl: drawn.canvas.toDataURL('image/jpeg', 0.92), w: drawn.canvas.width, h: drawn.canvas.height, landscape: drawn.landscape, links: [] }];
+
+            if (withPeople) {
+                var cardPages = renderBriefingPages({
+                    title: '관계도 인물 정보',
+                    blocks: [
+                        { t: 'title', kicker: '관계도 인물 정보', text: '고객 관계도 · 인물 ' + Object.keys(numbering).length + '명',
+                          sub: '번호는 1쪽 관계도의 원 안 번호와 같습니다. ' + (opts.contact ? '' : '연락처는 포함하지 않았습니다.') },
+                        { t: 'cards', items: mmPersonCards(numbering, opts) }
+                    ]
+                }, {
+                    pageOffset: 1,
+                    backLabel: '↑ 관계도로 돌아가기',
+                    continueLabel: '관계도 인물 정보 (계속)',
+                    footer: 'Tactical CRM · 대외비'
+                });
+                cardPages.forEach(function(cv, i) {
+                    pages.push({ dataUrl: cv.toDataURL('image/jpeg', 0.9), w: cv.width, h: cv.height, landscape: false,
+                        links: cardPages.backLinks.filter(function(l) { return l.page === i; }).map(function(l) {
+                            return { x1: l.x1, y1: l.y1, x2: l.x2, y2: l.y2, target: 0, ty: 0 };
+                        }) });
+                });
+                drawn.nodeRects.forEach(function(r) {
+                    var a = cardPages.anchors['p:' + r.customerId];
+                    if (a) pages[0].links.push({ x1: r.x1, y1: r.y1, x2: r.x2, y2: r.y2, target: a.page + 1, ty: a.y - 10 });
+                });
+            }
+            var pdf = buildJpegPagesPdf(pages);
             sharePdfOrDownload(pdf, '고객관계도-' + info.date + '.pdf', '고객 관계도');
         }
 
